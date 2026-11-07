@@ -13,7 +13,8 @@ import { extname, join, normalize, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { abrirBanco } from "./src/db.js";
-import { listarLeads, obterLead, atualizarLead, bloquearLead, cidades, resumo, levantamento } from "./src/leads.js";
+import { listarLeads, obterLead, atualizarLead, bloquearLead, cidades, resumo, levantamento, gravarChecagem } from "./src/leads.js";
+import { checarSite } from "./src/dominio/site.js";
 import { GMAPS_URL, importarBusca, listarBuscas } from "./src/importar.js";
 import { listarJobs, obterJob, criarJob, apagarJob, csvDoJob, estimar, recuperarPendentes, scraperLocalNoAr, ErroBusca } from "./src/buscas.js";
 import { infoFontes, escolherFonte, salvarChave, removerChave } from "./src/fontes/index.js";
@@ -93,7 +94,33 @@ const ROTAS = [
     soWhatsApp: q.soWhatsApp === "1", minScore: numero(q.minScore, 0), ordem: q.ordem || "score", limite: numero(q.limite, 300),
   })],
   ["GET", "/leads/:id", (p) => obterLead(id(p.id)) ?? (() => { throw new ErroHttp(404, "lead não encontrado"); })()],
-  ["PATCH", "/leads/:id", (p, _q, b) => atualizarLead(id(p.id), { status: b.status, notas: b.notas })],
+  ["PATCH", "/leads/:id", (p, _q, b) => atualizarLead(id(p.id), {
+    status: b.status, notas: b.notas, avaliacaoSite: "avaliacaoSite" in b ? b.avaliacaoSite : undefined,
+  })],
+
+  // Layer C review: own websites, to decide if it's worth redoing them.
+  ["GET", "/sites", (_p, q) => listarLeads({
+    camadas: ["C"], avaliacaoSite: q.estado || "pendente", cidade: q.cidade || undefined, busca: q.busca || undefined,
+    ordem: "avaliacoes", limite: numero(q.limite, 200),
+  })],
+  ["POST", "/leads/:id/checar-site", async (p) => {
+    const lead = obterLead(id(p.id));
+    if (!lead) throw new ErroHttp(404, "lead não encontrado");
+    if (!lead.website) throw new ErroHttp(400, "esse lead não tem site");
+    const r = await checarSite(lead.website);
+    gravarChecagem(lead.id, r);
+    return r;
+  }],
+  ["POST", "/sites/checar", async (_p, q) => {
+    // Checks the unchecked ones, three at a time, so the review list arrives with hints.
+    const pendentes = listarLeads({ camadas: ["C"], avaliacaoSite: "pendente", cidade: q.cidade || undefined, limite: 500 })
+      .leads.filter((l) => !l.siteChecadoEm).slice(0, numero(q.limite, 30));
+    let feitos = 0;
+    for (let i = 0; i < pendentes.length; i += 3) {
+      await Promise.all(pendentes.slice(i, i + 3).map(async (l) => { gravarChecagem(l.id, await checarSite(l.website)); feitos++; }));
+    }
+    return { checados: feitos, restantes: Math.max(0, listarLeads({ camadas: ["C"], avaliacaoSite: "pendente", limite: 5000 }).leads.filter((l) => !l.siteChecadoEm).length) };
+  }],
   ["POST", "/leads/:id/bloquear", (p, _q, b) => ({ ok: bloquearLead(id(p.id), b.motivo) })],
 
   ["POST", "/leads/:id/mensagem", (p, _q, b) => {

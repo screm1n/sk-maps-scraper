@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS templates (
   nome      TEXT NOT NULL,
   corpo     TEXT NOT NULL,
   idioma    TEXT NOT NULL DEFAULT 'pt',          -- pt | es | en
-  tipo      TEXT NOT NULL DEFAULT 'abertura',    -- abertura | poucas | followup | outro
+  tipo      TEXT NOT NULL DEFAULT 'abertura',    -- abertura | poucas | refazer | followup | outro
   criado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -127,6 +127,13 @@ const TEMPLATES_INICIAIS = [
     "Hi! I came across {{nome}} on Google, {{nota}} stars from {{qtd_avaliacoes}} reviews, but couldn't find your website.\n\nDo most of your new customers come from referrals, or do you also get them from Google?"],
   ["Question, few reviews (en)", "en", "poucas",
     "Hi! I came across {{nome}} on Google but couldn't find your website.\n\nDo most of your new customers come from referrals, or do you also get them from Google?"],
+  // Layer C marked "site ruim": they have a site, so the question is whether it brings clients.
+  ["Pergunta, site ruim (pt)", "pt", "refazer",
+    "Oi, tudo bem? Vi a {{nome}} no Google, nota {{nota}} com {{qtd_avaliacoes}} avaliações, e entrei no site de vocês pelo celular.\n\nHoje o site traz cliente novo pra vocês ou fica mais como um cartão de visita?"],
+  ["Pregunta, web floja (es)", "es", "refazer",
+    "¡Hola! Vi {{nome}} en Google, {{nota}} estrellas con {{qtd_avaliacoes}} reseñas, y entré a su página desde el celular.\n\n¿Hoy la página les trae clientes nuevos o queda más como una tarjeta de presentación?"],
+  ["Question, weak site (en)", "en", "refazer",
+    "Hi! I came across {{nome}} on Google, {{nota}} stars from {{qtd_avaliacoes}} reviews, and opened your website on my phone.\n\nDoes the site bring you new customers today, or is it more of a business card?"],
   ["Follow-up 48h (en)", "en", "followup",
     "Hi again! I asked about {{nome}}'s customers because I build websites for local businesses, and I make the preview before charging anything.\n\nWant me to build yours and send you a picture of it? If you're not interested, no worries, I won't reach out again."],
 ];
@@ -142,10 +149,18 @@ export function abrirBanco(caminho = process.env.LEADS_DB || "./data/leads.db") 
   // CREATE TABLE IF NOT EXISTS doesn't add columns to an existing table.
   const colunas = db.prepare("PRAGMA table_info(leads)").all().map((c) => c.name);
   if (!colunas.includes("nao_reivindicado")) db.exec("ALTER TABLE leads ADD COLUMN nao_reivindicado INTEGER NOT NULL DEFAULT 0");
+  // Layer C review: your verdict on the site ("ruim" = worth redoing, "bom" = leave it) and the auto check.
+  if (!colunas.includes("avaliacao_site")) db.exec("ALTER TABLE leads ADD COLUMN avaliacao_site TEXT");
+  if (!colunas.includes("site_check")) db.exec("ALTER TABLE leads ADD COLUMN site_check TEXT");
+  if (!colunas.includes("site_checado_em")) db.exec("ALTER TABLE leads ADD COLUMN site_checado_em TEXT");
   const { n } = db.prepare("SELECT COUNT(*) AS n FROM templates").get();
+  const ins = db.prepare("INSERT INTO templates (nome, idioma, tipo, corpo) VALUES (?, ?, ?, ?)");
   if (n === 0) {
-    const ins = db.prepare("INSERT INTO templates (nome, idioma, tipo, corpo) VALUES (?, ?, ?, ?)");
     for (const t of TEMPLATES_INICIAIS) ins.run(...t);
+  } else {
+    // New kinds of message reach databases created before them, without touching yours.
+    const tem = db.prepare("SELECT 1 FROM templates WHERE tipo = ? AND idioma = ? LIMIT 1");
+    for (const t of TEMPLATES_INICIAIS) if (t[2] === "refazer" && !tem.get(t[2], t[1])) ins.run(...t);
   }
   _db = db;
   return db;

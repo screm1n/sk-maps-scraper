@@ -21,7 +21,23 @@
   const salvo = (() => { try { return JSON.parse(localStorage.getItem("proposta:config") || "{}"); } catch { return {}; } })();
   for (const k of ["marca", "assinatura", "vista", "parcelas", "mensal", "prazo", "validade"]) if (salvo[k] != null) $(`#e-${k}`).value = salvo[k];
 
+  /** Problems the site check found, as short lines for "O que eu encontrei". */
+  const PROBLEMAS = [
+    [/celular/, "Celular", "o site não foi feito pra celular, que é onde a maioria abre."],
+    [/cadeado/, "Inseguro", "não tem cadeado: o navegador avisa \"não seguro\" pra quem entra."],
+    [/lento|não respondeu/, "Lento", "demora pra abrir, e quem está no celular desiste antes."],
+    [/WhatsApp/, "Contato", "não tem um botão pra pessoa te chamar no WhatsApp na hora."],
+    [/rodapé parado/, "Parado", "o rodapé parou no tempo, e isso passa a ideia de abandono."],
+    [/não abre/, "Fora do ar", "o endereço do seu site não está abrindo."],
+    [/título/, "Invisível", "o site aparece mal no Google, sem um título que diga o que você faz."],
+  ];
+  function problemasDoSite() {
+    const falhas = (lead.siteCheck?.sinais || []).filter((s) => !s.ok).map((s) => s.texto);
+    return PROBLEMAS.filter(([re]) => falhas.some((t) => re.test(t))).map(([, n, p]) => [n, p]);
+  }
+
   function textos() {
+    if (lead.camada === "C") return textosRefazer();
     const nome = nomeCurto(lead.nome);
     const poucas = (lead.qtdAvaliacoes || 0) < MIN_AVALIACOES || lead.nota == null;
     const soRede = lead.camada === "B";
@@ -58,6 +74,36 @@
       ["Ajustes inclusos", "Textos, fotos e serviços do seu jeito."], ["Suporte no WhatsApp", "Mudou algo, me manda que eu atualizo."],
     ];
     return { gancho, abertura, linhas, titulo: soRede ? "Por que um site, se você já tem rede social" : "Por que ir além do perfil no Google", motivos, itens };
+  }
+
+  /** The lead already has a site: the offer is to redo it. */
+  function textosRefazer() {
+    const nome = nomeCurto(lead.nome);
+    const poucas = (lead.qtdAvaliacoes || 0) < MIN_AVALIACOES || lead.nota == null;
+    const problemas = problemasDoSite();
+    const gancho = poucas ? [`${nome} tem site.`, "Mas ele não trabalha por você."] : [`Nota ${notaBr(lead.nota)} em ${lead.qtdAvaliacoes} avaliações.`, "O site não acompanha."];
+    const abertura = `Você já tem site, o que muita gente ainda não tem. Só que quem chega por ele pelo Google ${problemas.length
+      ? "encontra problemas que fazem a pessoa voltar pra busca e chamar o próximo"
+      : "não encontra um caminho rápido até o seu WhatsApp"}. Esta proposta troca o site atual por um feito pra trazer cliente.`;
+    const linhas = [];
+    if (!poucas) linhas.push([notaBr(lead.nota), `de nota no Google, com ${lead.qtdAvaliacoes} avaliações. A reputação é melhor que o site.`]);
+    linhas.push(...problemas.slice(0, poucas ? 3 : 2));
+    if (linhas.length < 2) linhas.push(["Contato", "o caminho até falar com você não está claro no site."]);
+    return {
+      gancho, abertura, linhas,
+      titulo: "Por que refazer um site que já existe",
+      motivos: [
+        ["Quem procura no Google decide rápido", "A pessoa compara dois ou três resultados e chama quem passa mais confiança. Um site datado faz você perder pra quem tem um melhor."],
+        ["Site velho espanta quem já ia comprar", "Quem abre um site lento, sem botão de contato ou quebrado no celular volta pro Google e chama o próximo."],
+        ["Profissional com site bom cobra melhor", "Uma presença organizada muda a percepção antes do primeiro contato, e isso aparece no valor que você consegue cobrar."],
+      ],
+      itens: [
+        ["Site novo", "Feito pra celular, rápido e com a sua marca."], ["Seus trabalhos e avaliações", "Fotos reais e a nota do Google em destaque."],
+        ["Botão direto pro WhatsApp", "Quem decidiu fala com você na hora."], ["Endereço com mapa", "O mapa do Google dentro do site."],
+        ["Mesmo domínio", "Mantenho o seu endereço, sem perder quem já te acha."], ["Google Meu Negócio revisado", "Perfil completo e ligado ao site."],
+        ["Ajustes inclusos", "Textos, fotos e serviços do seu jeito."], ["Suporte no WhatsApp", "Mudou algo, me manda que eu atualizo."],
+      ],
+    };
   }
 
   function render() {

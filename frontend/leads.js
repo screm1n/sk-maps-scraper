@@ -33,6 +33,9 @@
   const STATUS = { novo: "Novo", contatado: "Contatado", respondeu: "Respondeu", cliente: "Cliente", descartado: "Descartado" };
   const TIPO_TEL = { celular: "celular", fixo: "fixo", indefinido: "pode ter WhatsApp", outro: "central" };
   const CAMADA = { A: "nada online", B: "só rede social ou agendamento", C: "tem site" };
+  const camadaHtml = (l) => l.camada === "C" && l.avaliacaoSite === "ruim"
+    ? `<span class="camada A" title="tem site, mas você marcou como ruim: a oferta é refazer">C · refazer</span>`
+    : `<span class="camada ${l.camada}" title="${esc(CAMADA[l.camada])}">${l.camada}</span>`;
 
   function scoreHtml(total) {
     const cor = total >= 70 ? "var(--green)" : total >= 45 ? "var(--yellow)" : "var(--red)";
@@ -40,13 +43,13 @@
   }
 
   // ───────────────────────── sections ─────────────────────────
-  const SECOES = ["leads", "importar", "fila", "templates", "metricas"];
+  const SECOES = ["leads", "sites", "importar", "fila", "templates", "metricas"];
   const carregadas = {};
   function mostrar() {
     const atual = SECOES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "leads";
     $$("section.secao").forEach((s) => (s.hidden = s.dataset.secao !== atual));
     $$(".nav-item").forEach((a) => a.classList.toggle("active", a.dataset.secao === atual));
-    ({ leads: carregarLeads, importar: carregarBuscas, fila: () => carregadas.fila || montarFila(), templates: carregarTemplates, metricas: carregarMetricas })[atual]?.();
+    ({ leads: carregarLeads, sites: carregarSites, importar: carregarBuscas, fila: () => carregadas.fila || montarFila(), templates: carregarTemplates, metricas: carregarMetricas })[atual]?.();
     window.scrollTo({ top: 0 });
   }
   window.addEventListener("hashchange", mostrar);
@@ -78,11 +81,14 @@
     $("#k-responderam").textContent = fmt(responderam);
     $("#k-taxa").textContent = contatados ? `${pct(responderam, contatados)} dos contatados` : " ";
     $("#k-clientes").textContent = fmt(s.cliente || 0);
+    const bs = $("#badge-sites");
+    bs.hidden = !r.sites?.pendentes; bs.textContent = r.sites?.pendentes || "";
+    bs.style.background = "var(--blue)";
   }
 
   async function carregarCidades() {
     const lista = await api("/cidades");
-    for (const sel of [$("#f-cidade"), $("#q-cidade")]) {
+    for (const sel of [$("#f-cidade"), $("#q-cidade"), $("#s-cidade")]) {
       const atual = sel.value;
       sel.innerHTML = `<option value="">Todas</option>` + lista.map((c) => `<option value="${esc(c.cidade)}">${esc(c.cidade)}${c.pais ? ` (${esc(c.pais)})` : ""} · ${c.n}</option>`).join("");
       sel.value = atual;
@@ -104,7 +110,7 @@
       <tr data-id="${l.id}">
         <td>${scoreHtml(l.score.total)}</td>
         <td><div class="co-name">${esc(l.nome)}</div><div class="co-cat">${esc(l.categoria || "")}</div></td>
-        <td><span class="camada ${l.camada}" title="${esc(CAMADA[l.camada])}">${l.camada}</span></td>
+        <td>${camadaHtml(l)}</td>
         <td class="addr">${esc([l.bairro, l.cidade].filter(Boolean).join(", "))}${l.pais ? ` <span class="co-cat">${esc(l.pais)}</span>` : ""}</td>
         <td><div class="contact">${l.telefone ? `<span>${esc(l.telefone)}</span>` : `<span class="none">sem telefone</span>`}
           ${l.tipoTelefone ? `<span class="tipo-tel ${l.tipoTelefone}">${esc(TIPO_TEL[l.tipoTelefone] || l.tipoTelefone)}</span>` : ""}
@@ -280,7 +286,7 @@
     return `<article class="item-fila" data-id="${l.id}" data-template="${m.templateId}" data-tipo="${tipo}">
       <header>${scoreHtml(l.score.total)}<div><div class="nome">${esc(l.nome)}</div>
         <div class="meta">${esc([l.categoria, l.bairro, l.cidade].filter(Boolean).join(" · "))}${l.nota != null ? ` · ★ ${String(l.nota).replace(".", ",")} (${fmt(l.qtdAvaliacoes)})` : ""}</div></div>
-        <span class="camada ${l.camada}">${l.camada}</span></header>
+        ${camadaHtml(l)}</header>
       <textarea class="input" aria-label="Mensagem">${esc(m.corpo)}</textarea>
       <footer>
         <a class="btn verde sm" data-act="abrir" href="${esc(m.link || "#")}" target="_blank" rel="noopener">Abrir no WhatsApp</a>
@@ -373,7 +379,7 @@
   async function carregarTemplates() {
     const r = await api("/templates");
     templates = r.templates;
-    const TIPO = { abertura: "primeira mensagem", poucas: "primeira, poucas avaliações", followup: "follow-up", outro: "outra" };
+    const TIPO = { abertura: "primeira mensagem", poucas: "primeira, poucas avaliações", refazer: "primeira, site ruim", followup: "follow-up", outro: "outra" };
     const LINGUA = { pt: "português", es: "espanhol", en: "inglês" };
     $("#lista-tpl").innerHTML = templates.map((t) => `<li data-id="${t.id}" class="${String(t.id) === $("#tpl-id").value ? "on" : ""}"><b>${esc(t.nome)}</b><span>${LINGUA[t.idioma] || t.idioma} · ${TIPO[t.tipo] || t.tipo}</span></li>`).join("");
     $("#chips-var").innerHTML = r.variaveis.map((v) => `<button type="button" class="chip-var" data-var="${v}">{{${v}}}</button>`).join("");
@@ -430,11 +436,112 @@
     editar(null); carregarTemplates();
   });
 
+  // ───────────────────────── site review (layer C) ─────────────────────────
+  let estadoSites = "pendente";
+  const VEREDITO = { "cabe refazer": "refazer", "dá pra melhorar": "melhorar", "parece bom": "bom" };
+
+  function cartaoSite(l) {
+    const c = l.siteCheck;
+    const url = /^https?:/i.test(l.website || "") ? l.website : `https://${l.website}`;
+    const sinais = c ? `<ul class="sinais">${c.sinais.map((s) => `<li class="${s.ok ? "" : "ruim"}">${esc(s.texto)}</li>`).join("")}</ul>
+      ${c.construtor ? `<p class="help">Feito em ${esc(c.construtor)}</p>` : ""}` : `<p class="help">Ainda não checado.</p>`;
+    const botoes = estadoSites === "pendente"
+      ? `<button class="btn vermelho sm" data-act="ruim">Ruim, refazer</button>
+         <button class="btn verde sm" data-act="bom">Bom, descartar</button>
+         <button class="btn btn-ghost sm" data-act="pular">Pular</button>`
+      : `<button class="btn btn-ghost sm" data-act="desfazer">Voltar pra revisar</button>`;
+    return `<article class="site-card" data-id="${l.id}">
+      <header>${scoreHtml(l.score.total)}<div><div class="nome">${esc(l.nome)}</div>
+        <div class="meta">${esc([l.categoria, l.bairro, l.cidade].filter(Boolean).join(" · "))}${l.nota != null ? ` · ★ ${String(l.nota).replace(".", ",")} (${fmt(l.qtdAvaliacoes)})` : ""}</div></div>
+        ${c ? `<span class="veredito ${VEREDITO[c.veredito] || "nao"}">${esc(c.veredito)}</span>` : ""}</header>
+      <div class="site-url"><span title="${esc(url)}">${esc(url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</span>
+        <a class="btn filled sm" href="${esc(url)}" target="_blank" rel="noopener" data-act="abrir">Abrir site</a></div>
+      ${sinais}
+      <footer>${botoes}${c ? "" : `<button class="btn sm" data-act="checar">Checar</button>`}
+        ${estadoSites === "pendente" ? `<span class="dica-tecla">R ruim · B bom</span>` : ""}</footer>
+    </article>`;
+  }
+
+  async function carregarSites() {
+    const q = new URLSearchParams({ estado: estadoSites, cidade: $("#s-cidade").value, busca: $("#s-busca").value.trim() });
+    for (const [k, v] of [...q]) if (!v) q.delete(k);
+    const [dados, r] = await Promise.all([api(`/sites?${q}`), api("/resumo"), carregarCidades()]);
+    $("#n-pendente").textContent = r.sites.pendentes || "";
+    $("#n-ruim").textContent = r.sites.ruins || "";
+    $("#n-bom").textContent = r.sites.bons || "";
+    const bs = $("#badge-sites");
+    bs.hidden = !r.sites.pendentes; bs.textContent = r.sites.pendentes || ""; bs.style.background = "var(--blue)";
+    $("#lista-sites").innerHTML = dados.leads.map(cartaoSite).join("");
+    $("#sites-vazio").hidden = dados.leads.length > 0;
+    $("#sites-vazio-txt").textContent = estadoSites === "pendente" ? "Nenhum lead com site próprio pra revisar. Importe uma busca que traga empresas com site."
+      : estadoSites === "ruim" ? "Você ainda não marcou nenhum site como ruim." : "Nenhum site marcado como bom.";
+  }
+
+  $("#sites-estado").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-estado]");
+    if (!b) return;
+    estadoSites = b.dataset.estado;
+    $$("#sites-estado button").forEach((x, i) => { x.classList.toggle("on", x === b); if (x === b) $("#sites-estado").style.setProperty("--idx", i); });
+    carregarSites();
+  });
+  $("#s-cidade").addEventListener("change", carregarSites);
+  let sitesTimer;
+  $("#s-busca").addEventListener("input", () => { clearTimeout(sitesTimer); sitesTimer = setTimeout(carregarSites, 250); });
+
+  $("#checar-todos").addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = "Checando…";
+    try {
+      const r = await api(`/sites/checar?cidade=${encodeURIComponent($("#s-cidade").value)}&limite=30`, { method: "POST", body: {} });
+      toast(r.checados ? `${r.checados} sites checados${r.restantes ? `, faltam ${r.restantes} (clique de novo)` : ""}.` : "Todos já estavam checados.");
+      carregarSites();
+    } catch (err) { toast(err.message); }
+    finally { b.disabled = false; b.textContent = "Checar os sites automaticamente"; }
+  });
+
+  async function decidir(card, avaliacao) {
+    await api(`/leads/${card.dataset.id}`, { method: "PATCH", body: { avaliacaoSite: avaliacao } });
+    card.classList.add("saindo");
+    setTimeout(() => { card.remove(); if (!$("#lista-sites .site-card")) carregarSites(); else api("/resumo").then((r) => {
+      $("#n-pendente").textContent = r.sites.pendentes || ""; $("#n-ruim").textContent = r.sites.ruins || ""; $("#n-bom").textContent = r.sites.bons || "";
+    }); }, 280);
+    carregadas.fila = false;
+    if (avaliacao === "ruim") toast("Marcado como ruim: entra na fila com a mensagem de refazer o site.");
+  }
+
+  $("#lista-sites").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const card = b.closest(".site-card");
+    const act = b.dataset.act;
+    if (act === "abrir") { card.dataset.aberto = "1"; $$("#lista-sites .site-card").forEach((c) => c.classList.toggle("foco", c === card)); return; }
+    try {
+      if (act === "ruim" || act === "bom") return decidir(card, act);
+      if (act === "desfazer") return decidir(card, null);
+      if (act === "pular") { card.classList.add("saindo"); setTimeout(() => { card.remove(); $("#lista-sites").appendChild(card); card.classList.remove("saindo"); }, 280); return; }
+      if (act === "checar") {
+        b.disabled = true; b.textContent = "Checando…";
+        await api(`/leads/${card.dataset.id}/checar-site`, { method: "POST", body: {} });
+        const l = await api(`/leads/${card.dataset.id}`);
+        card.outerHTML = cartaoSite(l);
+      }
+    } catch (err) { toast(err.message); }
+  });
+
+  // R / B decide the last site you opened (or the first one), so reviewing goes fast.
+  document.addEventListener("keydown", (e) => {
+    if ($("#sec-sites").hidden || estadoSites !== "pendente" || e.target.closest("input, textarea, select")) return;
+    const k = e.key.toLowerCase();
+    if (k !== "r" && k !== "b") return;
+    const card = $("#lista-sites .site-card.foco") || $("#lista-sites .site-card");
+    if (card) decidir(card, k === "r" ? "ruim" : "bom");
+  });
+
   // ───────────────────────── metrics ─────────────────────────
   async function carregarMetricas() {
     const m = await api("/metricas");
     const f = m.funil, max = Math.max(1, f.importados);
-    const etapas = [["Importados", f.importados], ["Sem site", f.semSite], ["Com WhatsApp", f.comWhatsApp], ["Contatados", f.contatados], ["Responderam", f.responderam], ["Clientes", f.clientes]];
+    const etapas = [["Importados", f.importados], ["Sem site", f.semSite], ["Site ruim (refazer)", f.sitesRuins || 0], ["Com WhatsApp", f.comWhatsApp], ["Contatados", f.contatados], ["Responderam", f.responderam], ["Clientes", f.clientes]];
     $("#funil").innerHTML = etapas.map(([n, v]) => `<div><span>${n}</span><span class="barra"><i style="width:${(v / max) * 100}%"></i></span><b>${fmt(v)}</b></div>`).join("");
     $("#tbody-metricas").innerHTML = m.porTemplate.length ? m.porTemplate.map((t) => `<tr style="cursor:default">
       <td>${esc(t.template)}</td><td class="num">${fmt(t.enviados)}</td><td class="num">${fmt(t.responderam)}</td>

@@ -30,7 +30,7 @@ flowchart LR
    |---|---|---|
    | **A** | nada | invisível online |
    | **B** | só Instagram, linktree, WhatsApp ou página de agendamento (Booksy, Square, Vagaro...) | tem público, não tem site |
-   | **C** | site próprio | sai da fila |
+   | **C** | site próprio | vai pra **Revisar sites**: se o site for ruim, a oferta vira refazer |
 
 3. **Aborda.** A fila mostra os melhores leads sem site, com a mensagem na língua de cada um
    (português, espanhol ou inglês). Você abre o WhatsApp com o texto pronto e envia.
@@ -42,6 +42,19 @@ Reimportar uma busca só atualiza os dados do Google. Status, notas e histórico
 ![Leads com camada, nota e tipo de telefone](docs/leads.png)
 
 ![Fila do WhatsApp com as mensagens prontas](docs/fila.png)
+
+## Revisar sites: quem já tem site também pode ser cliente
+
+Negócio com site próprio não some da lista. Em **Revisar sites** ele aparece com o link pra
+abrir e uma checagem automática que adianta o trabalho: o site abre? tem cadeado (HTTPS)?
+foi feito pra celular? tem botão de WhatsApp? o rodapé parou em que ano? demora pra carregar?
+
+Você abre, olha e decide com um clique (ou as teclas **R** e **B**): **ruim, refazer** ou
+**bom, descartar**. Quem você marca como ruim ganha pontos na nota, entra na fila do WhatsApp
+com uma mensagem própria ("hoje o site traz cliente ou fica mais como cartão de visita?") e a
+proposta muda pra refazer o site, citando os problemas que a checagem achou.
+
+![Revisar sites, com a checagem automática de cada um](docs/sites.png)
 
 ## Onde raspar: Local, Apify ou Google Places
 

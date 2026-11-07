@@ -39,7 +39,8 @@ export function templateParaLead(lead, tipo = "abertura") {
   const idioma = idiomaDoPais(lead.pais);
   const pegar = (t, lang) => db().prepare("SELECT * FROM templates WHERE tipo = ? AND idioma = ? ORDER BY id").all(t, lang);
   let t = tipo;
-  if (tipo === "abertura" && ((lead.qtdAvaliacoes || 0) < MIN_AVALIACOES_COPY || lead.nota == null)) t = "poucas";
+  if (tipo === "abertura" && lead.camada === "C") t = "refazer"; // has a site: ask if it brings clients
+  else if (tipo === "abertura" && ((lead.qtdAvaliacoes || 0) < MIN_AVALIACOES_COPY || lead.nota == null)) t = "poucas";
   let lista = pegar(t, idioma);
   if (!lista.length) lista = pegar(tipo, idioma);
   if (!lista.length) lista = pegar(tipo, "pt");
@@ -70,7 +71,7 @@ export function enviadasHoje() {
  */
 export function montarFila({ limite = 12, corteAvaliacoes = 15, minScore = 0, cidade } = {}) {
   const { leads } = listarLeads({
-    camadas: ["A", "B"], status: ["novo"], soWhatsApp: true, cidade: cidade || undefined,
+    camadas: ["A", "B", "R"], status: ["novo"], soWhatsApp: true, cidade: cidade || undefined,
     minAvaliacoes: corteAvaliacoes || undefined, minScore, limite: limite * 3,
   });
   const fila = [];
@@ -167,6 +168,7 @@ export function metricas() {
     importados: q("SELECT COUNT(*) n FROM leads"),
     semSite: q("SELECT COUNT(*) n FROM leads WHERE camada IN ('A','B')"),
     comWhatsApp: q("SELECT COUNT(*) n FROM leads WHERE camada IN ('A','B') AND tipo_telefone IN ('celular','indefinido')"),
+    sitesRuins: q("SELECT COUNT(*) n FROM leads WHERE camada = 'C' AND avaliacao_site = 'ruim'"),
     contatados: q("SELECT COUNT(*) n FROM leads WHERE status IN ('contatado','respondeu','cliente')"),
     responderam: q("SELECT COUNT(*) n FROM leads WHERE status IN ('respondeu','cliente')"),
     clientes: q("SELECT COUNT(*) n FROM leads WHERE status = 'cliente'"),

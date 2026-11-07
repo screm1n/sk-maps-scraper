@@ -16,6 +16,7 @@ export const PESOS = {
   notaAlta: 10,
   comEmail: 5,
   naoReivindicado: 12,
+  siteRuim: 35,
 };
 
 /**
@@ -23,9 +24,12 @@ export const PESOS = {
  *          nota: number|null, temEmail?: boolean}} lead
  */
 export function notaDoLead(lead, pesos = PESOS) {
-  // A real own website leaves the queue: not a lead, already served.
-  if (lead.camada === "C" && !lead.siteFraco) {
-    return { total: 0, fatores: [{ nome: "camada", pontos: 0, detalhe: "tem site próprio" }] };
+  // An own website only becomes a lead after you look at it and mark it "ruim" (Revisar sites).
+  if (lead.camada === "C" && lead.avaliacaoSite === "bom") {
+    return { total: 0, fatores: [{ nome: "camada", pontos: 0, detalhe: "site bom, não cabe refazer" }] };
+  }
+  if (lead.camada === "C" && !lead.siteFraco && lead.avaliacaoSite !== "ruim") {
+    return { total: 0, fatores: [{ nome: "camada", pontos: 0, detalhe: "tem site próprio: analise em Revisar sites" }] };
   }
 
   const fatores = [];
@@ -33,6 +37,7 @@ export function notaDoLead(lead, pesos = PESOS) {
 
   if (lead.camada === "A") add("camada", pesos.camadaA, "sem nenhuma presença online");
   else if (lead.camada === "B") add("camada", pesos.camadaB, "rede social ou agendamento, sem site");
+  else if (lead.avaliacaoSite === "ruim") add("camada", pesos.siteRuim, "site ruim, cabe refazer");
   else add("camada", pesos.siteFraco, "site em hospedagem gratuita");
 
   if (lead.tipoTelefone === "celular") add("telefone", pesos.celular, "celular, dá WhatsApp");

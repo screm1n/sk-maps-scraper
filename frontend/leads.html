@@ -27,6 +27,7 @@
     </div>
     <nav class="nav">
       <a href="#leads" class="nav-item" data-secao="leads"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-3-5.5"/></svg>Leads</a>
+      <a href="#sites" class="nav-item" data-secao="sites"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="13" rx="2"/><path d="M3.5 8.5h17M8 21h8M12 17.5V21"/></svg>Revisar sites <span id="badge-sites" class="nav-badge" hidden></span></a>
       <a href="#importar" class="nav-item" data-secao="importar"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg>Importar buscas</a>
       <a href="#fila" class="nav-item" data-secao="fila"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5z"/></svg>Fila do WhatsApp <span id="badge-fila" class="nav-badge" hidden></span></a>
       <a href="#templates" class="nav-item" data-secao="templates"><svg viewBox="0 0 24 24"><path d="M5 4.5h14v15H5z"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>Mensagens</a>
@@ -66,6 +67,7 @@
               <option value="A">A: nada online</option>
               <option value="B">B: só rede social</option>
               <option value="C">C: tem site</option>
+              <option value="R">C: site ruim (refazer)</option>
               <option value="">Todas</option>
             </select></div>
           <div class="field"><label for="f-status">Status</label>
@@ -98,6 +100,30 @@
         <div id="leads-vazio" class="vazio" hidden><b>Nenhum lead ainda.</b>Faça uma busca no Mapa ou no Painel e importe ela em <a href="#importar">Importar buscas</a>.</div>
       </div>
       <p class="help" id="leads-conta"></p>
+    </section>
+
+    <!-- ═════════ Revisar sites ═════════ -->
+    <section class="secao stack" id="sec-sites" data-secao="sites" hidden>
+      <div class="page-head">
+        <h1>Revisar sites</h1>
+        <p>Quem já tem site não sai da lista: abra, veja se é ruim e decida. O que você marcar como ruim entra na fila do WhatsApp com a mensagem de refazer o site.</p>
+      </div>
+      <section class="card">
+        <div class="toolbar">
+          <div class="field"><span class="label">Mostrar</span>
+            <div class="seg" id="sites-estado" style="--n:3;--idx:0">
+              <button type="button" class="on" data-estado="pendente">Pra revisar <b id="n-pendente"></b></button>
+              <button type="button" data-estado="ruim">Ruins <b id="n-ruim"></b></button>
+              <button type="button" data-estado="bom">Bons <b id="n-bom"></b></button>
+            </div></div>
+          <div class="field"><label for="s-cidade">Cidade</label><select id="s-cidade" class="input"><option value="">Todas</option></select></div>
+          <div class="field grow"><label for="s-busca">Buscar</label><input id="s-busca" class="input" type="search" placeholder="nome ou ramo"></div>
+          <button class="btn" id="checar-todos" type="button" title="Abre cada site por aqui e anota o que um cliente perceberia">Checar os sites automaticamente</button>
+        </div>
+        <p class="help" style="margin-top:10px">A checagem automática só dá pistas (abre? tem cadeado? funciona no celular? tem WhatsApp? está atualizado?). Quem decide é você, abrindo o site.</p>
+      </section>
+      <div class="sites" id="lista-sites"></div>
+      <div id="sites-vazio" class="card vazio" hidden><b>Nada aqui.</b><span id="sites-vazio-txt">Nenhum lead com site próprio pra revisar.</span></div>
     </section>
 
     <!-- ═════════ Importar ═════════ -->
@@ -185,6 +211,7 @@
               <select id="tpl-tipo" class="input">
                 <option value="abertura">Primeira mensagem</option>
                 <option value="poucas">Primeira, com poucas avaliações</option>
+                <option value="refazer">Primeira, pra quem tem site ruim</option>
                 <option value="followup">Follow-up</option>
                 <option value="outro">Outra</option>
               </select></div>

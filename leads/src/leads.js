@@ -51,7 +51,9 @@ export function paraLead(r) {
     telefone: r.telefone_bruto, telefoneE164: r.telefone_e164, tipoTelefone: r.tipo_telefone,
     website: r.website, camada: r.camada, siteFraco: !!r.site_fraco, igHandle: r.ig_handle,
     emails: r.emails, nota: r.nota, qtdAvaliacoes: r.qtd_avaliacoes, linkMaps: r.link_maps,
-    buscaId: r.busca_id, naoReivindicado: !!r.nao_reivindicado, status: r.status, notas: r.notas, contatadoEm: r.contatado_em, criadoEm: r.criado_em,
+    buscaId: r.busca_id, naoReivindicado: !!r.nao_reivindicado, status: r.status,
+    avaliacaoSite: r.avaliacao_site || null, siteChecadoEm: r.site_checado_em || null,
+    siteCheck: r.site_check ? JSON.parse(r.site_check) : null, notas: r.notas, contatadoEm: r.contatado_em, criadoEm: r.criado_em,
   };
   lead.score = notaDoLead({ ...lead, temEmail: !!(r.emails && r.emails.includes("@")) });
   lead.whatsapp = podeWhatsApp(r.tipo_telefone) && !!r.telefone_e164;
@@ -65,7 +67,17 @@ export function paraLead(r) {
 export function listarLeads(f = {}) {
   const where = ["1=1"];
   const args = [];
-  if (f.camadas?.length) { where.push(`camada IN (${f.camadas.map(() => "?").join(",")})`); args.push(...f.camadas); }
+  // "R" = layer C you marked as "site ruim": it has a site, but redoing it is the offer.
+  if (f.camadas?.length) {
+    const normais = f.camadas.filter((c) => c !== "R");
+    const partes = [];
+    if (normais.length) { partes.push(`camada IN (${normais.map(() => "?").join(",")})`); args.push(...normais); }
+    if (f.camadas.includes("R")) partes.push("(camada = 'C' AND avaliacao_site = 'ruim')");
+    where.push(`(${partes.join(" OR ")})`);
+  }
+  // Review of sites: "pendente" = has a site and no verdict yet.
+  if (f.avaliacaoSite === "pendente") where.push("camada = 'C' AND avaliacao_site IS NULL AND website IS NOT NULL");
+  else if (f.avaliacaoSite) { where.push("camada = 'C' AND avaliacao_site = ?"); args.push(f.avaliacaoSite); }
   if (f.status?.length) { where.push(`status IN (${f.status.map(() => "?").join(",")})`); args.push(...f.status); }
   if (f.cidade) { where.push("cidade = ?"); args.push(f.cidade); }
   if (f.busca) { where.push("(nome LIKE ? OR categoria LIKE ? OR bairro LIKE ?)"); args.push(...Array(3).fill(`%${f.busca}%`)); }
@@ -98,8 +110,12 @@ export function obterLead(id) {
 
 const STATUS = ["novo", "contatado", "respondeu", "cliente", "descartado"];
 
-export function atualizarLead(id, { status, notas }) {
+export function atualizarLead(id, { status, notas, avaliacaoSite }) {
   if (status && !STATUS.includes(status)) throw new Error("status inválido");
+  if (avaliacaoSite !== undefined) {
+    if (avaliacaoSite !== null && !["ruim", "bom"].includes(avaliacaoSite)) throw new Error("avaliação inválida");
+    db().prepare("UPDATE leads SET avaliacao_site = ?, atualizado_em = datetime('now') WHERE id = ?").run(avaliacaoSite, id);
+  }
   db().prepare(`UPDATE leads SET status = COALESCE(?, status), notas = COALESCE(?, notas),
     contatado_em = CASE WHEN ? = 'contatado' AND contatado_em IS NULL THEN datetime('now') ELSE contatado_em END,
     atualizado_em = datetime('now') WHERE id = ?`).run(status ?? null, notas ?? null, status ?? null, id);
@@ -115,6 +131,11 @@ export function bloquearLead(id, motivo = "pediu para sair") {
   return true;
 }
 
+/** Saves the automatic site check. */
+export function gravarChecagem(id, resultado) {
+  db().prepare("UPDATE leads SET site_check = ?, site_checado_em = datetime('now') WHERE id = ?").run(JSON.stringify(resultado), id);
+}
+
 export function cidades() {
   return db().prepare("SELECT cidade, pais, COUNT(*) AS n FROM leads WHERE cidade IS NOT NULL GROUP BY cidade, pais ORDER BY n DESC").all();
 }
@@ -124,7 +145,9 @@ export function resumo() {
   const porStatus = Object.fromEntries(db().prepare("SELECT status, COUNT(*) n FROM leads GROUP BY status").all().map((x) => [x.status, x.n]));
   const total = db().prepare("SELECT COUNT(*) n FROM leads").get().n;
   const comWhatsApp = db().prepare("SELECT COUNT(*) n FROM leads WHERE camada IN ('A','B') AND tipo_telefone IN ('celular','indefinido')").get().n;
-  return { total, porCamada, porStatus, comWhatsApp };
+  const sites = db().prepare(`SELECT SUM(avaliacao_site IS NULL AND website IS NOT NULL) pendentes,
+    SUM(avaliacao_site = 'ruim') ruins, SUM(avaliacao_site = 'bom') bons FROM leads WHERE camada = 'C'`).get();
+  return { total, porCamada, porStatus, comWhatsApp, sites: { pendentes: sites.pendentes || 0, ruins: sites.ruins || 0, bons: sites.bons || 0 } };
 }
 
 /** How many businesses of the same category in the same city have their own site (for the proposal). */

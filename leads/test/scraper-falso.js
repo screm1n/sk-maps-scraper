@@ -28,7 +28,20 @@ const EXTRAS = NOMES.map((nome, i) => {
     "", `ex${i}`, `EXEMPLO_${i}`, "", "", "", "", "", end, "", "", "", ""];
   return cols.map((c, k) => (k === 4 || k === 29 ? q(c) : c)).join(",");
 });
-const CSV_BH = [CABECALHO, ...LINHAS.filter((l) => l.includes('""country"":""BR""')), ...EXTRAS].join("\n") + "\n";
+// Three fictional businesses with real websites, to try "Revisar sites": two modern ones and the
+// very first website (1991: no padlock, no phone layout).
+const COM_SITE = [
+  ["Studio Neon Yoga", "Estúdio de yoga", "https://miaumaste.netlify.app", "Savassi"],
+  ["Hamburgueria Solid", "Hamburgueria", "https://solidburger.netlify.app", "Lourdes"],
+  ["Ateliê Clássico", "Manicure", "http://info.cern.ch", "Funcionários"],
+].map(([nome, cat, site, bairro], i) => {
+  const end = JSON.stringify({ borough: bairro, city: "Belo Horizonte", state: "Minas Gerais", country: "BR" });
+  const cols = [200 + i, `https://www.google.com/maps/place/site-${i}`, nome, cat, `Rua do Site, ${i + 1} - ${bairro}, Belo Horizonte - MG`,
+    "", "", site, `(31) 9${8700 + i * 11}-${3100 + i * 7}`, "", 60 + i * 40, (4.6 + i / 10).toFixed(1), "", (-19.935 + i * 0.004).toFixed(5),
+    (-43.935 - i * 0.004).toFixed(5), 9500 + i, "Open", "", "", "", "America/Sao_Paulo", "", `site${i}`, `SITE_${i}`, "", "", "", "", "", end, "", "", "", ""];
+  return cols.map((c, k) => (k === 4 || k === 29 ? q(c) : c)).join(",");
+});
+const CSV_BH = [CABECALHO, ...LINHAS.filter((l) => l.includes('""country"":""BR""')), ...EXTRAS, ...COM_SITE].join("\n") + "\n";
 
 const JOBS = [
   { ID: "demo-bh", Name: "manicure em Belo Horizonte (exemplo)", Date: new Date().toISOString(), Status: "ok",
