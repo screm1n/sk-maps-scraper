@@ -151,12 +151,37 @@ Inside Claude Code you can also use these commands (type `/` to see them):
 
 ---
 
+## 4b. Leads mode (qualify and contact) 🎯
+
+`docker compose up -d` also starts the **leads** service. Open **http://localhost:8080/leads**:
+
+1. **Importar buscas**: every finished scrape shows up; click **Importar**. Leave the country on
+   "Automático" (it comes from each address) or pick it if addresses lack it.
+2. **Leads**: filter by layer, status and city; click a lead for its score breakdown, notes,
+   replies and **Gerar proposta**.
+3. **Fila do WhatsApp**: pick how many, the minimum reviews and score, then for each card
+   **Abrir no WhatsApp** → send → **Marquei como enviado**.
+4. **Mensagens**: edit or add templates per language; **Métricas** shows which one gets replies.
+
+After pulling a new version of the kit, rebuild the leads image: `docker compose up -d --build`.
+
+**Without Docker** (to try the screens, or if the scraper runs elsewhere), Node 22.13+:
+```bash
+cd leads
+npm install
+node test/scraper-falso.js            # optional: a fake scraper with sample data on :8080
+GMAPS_URL=http://localhost:8080 npm start   # then open http://localhost:3000/leads
+```
+`npm test` runs the rules and the whole import → queue → reply → metrics flow on an in-memory database.
+
+---
+
 ## 5. Stop / clean up
 
 ```bash
 docker compose stop      # pause (keeps data + image)
 docker compose down      # stop + remove container (keeps named volumes/data)
-docker compose down -v   # ALSO delete scraped data volumes (full reset)
+docker compose down -v   # ALSO delete scraped data AND the lead database (full reset)
 ```
 
 Delete old jobs to free disk (results accumulate in the data volume):

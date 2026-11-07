@@ -1,0 +1,16 @@
+{
+  "name": "gmaps-kit-leads",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turns Google Maps scraper results into a qualified lead pipeline: A/B/C layers, lead score, mobile vs landline, WhatsApp queue, templates, replies, metrics and proposal.",
+  "type": "module",
+  "main": "server.js",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning server.js",
+    "test": "node --no-warnings=ExperimentalWarning --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "libphonenumber-js": "1.11.18"
+  }
+}

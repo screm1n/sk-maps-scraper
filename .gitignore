@@ -16,3 +16,11 @@ __pycache__/
 # OS / editor noise
 .DS_Store
 Thumbs.db
+
+# Leads server
+leads/node_modules/
+leads/data/
+*.db
+*.db-wal
+*.db-shm
+!leads/test/fixtures/*.csv

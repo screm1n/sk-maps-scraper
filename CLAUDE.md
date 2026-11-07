@@ -34,6 +34,15 @@ abusive use (surveilling individuals, spam). Full guidance is in the skill.
 - Before a big job (high depth / many keywords), **confirm with the user** — cost is time + IP-block risk.
 - Scraped emails/phones are **personal data**; don't dump huge CSVs into chat — summarize + save to disk.
 
+## Leads mode
+`/leads` (served by the `leads` service, code in `./leads`) turns finished jobs into a qualified lead
+database: A/B/C layers, score, mobile vs landline per country, WhatsApp queue, templates, replies,
+metrics, proposals. Its API is `http://localhost:8080/leads-api/*` (e.g. `POST /leads-api/buscas/<job-id>/importar`,
+`GET /leads-api/fila`, `GET /leads-api/metricas`). When the user wants leads *qualified* or *contacted*
+(not just listed), import the job there instead of dumping a CSV. Never send WhatsApp messages on the
+user's behalf without explicit confirmation of who receives what. The rules live in `leads/src/dominio`
+and are covered by `cd leads && npm test`; keep them passing.
+
 ## Setup
 If the container isn't running: `docker compose up -d`, then verify `curl http://localhost:8080/api/v1/jobs`.
 Full setup is in `SETUP.md`.

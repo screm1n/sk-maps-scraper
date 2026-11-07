@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Maps Scraper · Leads</title>
+  <link rel="icon" type="image/png" href="/app/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app/painel.css">
+  <link rel="stylesheet" href="/app/leads.css">
+</head>
+<body>
+  <aside class="sidebar liquid">
+    <div class="brand">
+      <img class="brand-mark" src="/app/img/logo.png" alt="" width="34" height="34">
+      <div>
+        <div class="brand-name">Google Maps Scraper</div>
+        <div class="brand-sub">Leads e abordagem</div>
+      </div>
+    </div>
+    <div class="mode-switch" role="tablist" aria-label="Modo de visualização">
+      <a href="/" role="tab" aria-selected="false">Mapa</a>
+      <a href="/painel" role="tab" aria-selected="false">Painel</a>
+      <a href="/leads" role="tab" aria-selected="true" class="on">Leads</a>
+    </div>
+    <nav class="nav">
+      <a href="#leads" class="nav-item" data-secao="leads"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-3-5.5"/></svg>Leads</a>
+      <a href="#importar" class="nav-item" data-secao="importar"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg>Importar buscas</a>
+      <a href="#fila" class="nav-item" data-secao="fila"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5z"/></svg>Fila do WhatsApp <span id="badge-fila" class="nav-badge" hidden></span></a>
+      <a href="#templates" class="nav-item" data-secao="templates"><svg viewBox="0 0 24 24"><path d="M5 4.5h14v15H5z"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>Mensagens</a>
+      <a href="#metricas" class="nav-item" data-secao="metricas"><svg viewBox="0 0 24 24"><path d="M4.5 19.5V10M10 19.5V5M15.5 19.5v-7M21 19.5H3"/></svg>Métricas</a>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="health" class="health"><i></i><span>verificando…</span></span>
+      <a class="link-muted" href="https://github.com/gosom/google-maps-scraper" target="_blank" rel="noopener">motor: google-maps-scraper (MIT)</a>
+    </div>
+  </aside>
+
+  <main class="page">
+
+    <!-- ═════════ Leads ═════════ -->
+    <section class="secao stack" id="sec-leads" data-secao="leads">
+      <div class="page-head">
+        <h1>Leads</h1>
+        <p>Negócios importados das suas buscas, separados por quem tem site, com uma nota de 0 a 100.</p>
+      </div>
+
+      <section class="kpis six" aria-label="Resumo">
+        <div class="kpi blue"><span class="kpi-label">Importados</span><span class="kpi-value" id="k-total">–</span><span class="kpi-hint">todas as buscas</span></div>
+        <div class="kpi red"><span class="kpi-label">Sem site</span><span class="kpi-value" id="k-semsite">–</span><span class="kpi-hint" id="k-semsite-hint">&nbsp;</span></div>
+        <div class="kpi green"><span class="kpi-label">Com WhatsApp</span><span class="kpi-value" id="k-wa">–</span><span class="kpi-hint">sem site e com celular</span></div>
+        <div class="kpi yellow"><span class="kpi-label">Contatados</span><span class="kpi-value" id="k-contatados">–</span><span class="kpi-hint">&nbsp;</span></div>
+        <div class="kpi purple"><span class="kpi-label">Responderam</span><span class="kpi-value" id="k-responderam">–</span><span class="kpi-hint" id="k-taxa">&nbsp;</span></div>
+        <div class="kpi gray"><span class="kpi-label">Clientes</span><span class="kpi-value" id="k-clientes">–</span><span class="kpi-hint">&nbsp;</span></div>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <div class="field grow"><label for="f-busca">Buscar</label><input id="f-busca" class="input" type="search" placeholder="nome, ramo ou bairro"></div>
+          <div class="field"><label for="f-camada">Camada</label>
+            <select id="f-camada" class="input">
+              <option value="A,B">Sem site (A e B)</option>
+              <option value="A">A: nada online</option>
+              <option value="B">B: só rede social</option>
+              <option value="C">C: tem site</option>
+              <option value="">Todas</option>
+            </select></div>
+          <div class="field"><label for="f-status">Status</label>
+            <select id="f-status" class="input">
+              <option value="">Todos</option>
+              <option value="novo">Novo</option>
+              <option value="contatado">Contatado</option>
+              <option value="respondeu">Respondeu</option>
+              <option value="cliente">Cliente</option>
+              <option value="descartado">Descartado</option>
+            </select></div>
+          <div class="field"><label for="f-cidade">Cidade</label><select id="f-cidade" class="input"><option value="">Todas</option></select></div>
+          <div class="field"><label for="f-ordem">Ordem</label>
+            <select id="f-ordem" class="input">
+              <option value="score">Maior nota</option>
+              <option value="avaliacoes">Mais avaliações</option>
+              <option value="recente">Mais recentes</option>
+            </select></div>
+          <label class="check-inline"><input id="f-wa" type="checkbox"> Só com WhatsApp</label>
+        </div>
+      </section>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Nota</th><th>Negócio</th><th>Camada</th><th>Onde</th><th>Contato</th><th class="num">Google</th><th>Status</th>
+          </tr></thead>
+          <tbody id="tbody-leads"></tbody>
+        </table>
+        <div id="leads-vazio" class="vazio" hidden><b>Nenhum lead ainda.</b>Faça uma busca no Mapa ou no Painel e importe ela em <a href="#importar">Importar buscas</a>.</div>
+      </div>
+      <p class="help" id="leads-conta"></p>
+    </section>
+
+    <!-- ═════════ Importar ═════════ -->
+    <section class="secao stack" id="sec-importar" data-secao="importar" hidden>
+      <div class="page-head">
+        <h1>Importar buscas</h1>
+        <p>Cada busca terminada no scraper vira leads aqui: classificados, com nota e com o tipo de telefone. Importar de novo só atualiza os dados do Google, nunca o que você marcou.</p>
+      </div>
+      <section class="card">
+        <div class="card-head row">
+          <div><h2>Buscas no scraper</h2><p>O país serve pra ler os telefones. Em "Automático" ele vem do endereço de cada empresa.</p></div>
+          <button class="btn" id="recarregar-buscas" type="button">Atualizar</button>
+        </div>
+        <ul class="jobs" id="lista-buscas"></ul>
+        <div id="buscas-erro" class="alert" hidden></div>
+      </section>
+    </section>
+
+    <!-- ═════════ Fila ═════════ -->
+    <section class="secao stack" id="sec-fila" data-secao="fila" hidden>
+      <div class="page-head">
+        <h1>Fila do WhatsApp</h1>
+        <p>Os melhores leads sem site, com a mensagem pronta na língua de cada um. Você abre a conversa, envia, e marca aqui.</p>
+      </div>
+
+      <section class="card stack" style="gap:12px">
+        <div class="toolbar">
+          <div class="field"><label for="q-limite">Quantos</label><input id="q-limite" class="input" type="number" min="1" max="50" value="12"></div>
+          <div class="field"><label for="q-corte">Mínimo de avaliações</label><input id="q-corte" class="input" type="number" min="0" value="15"></div>
+          <div class="field"><label for="q-score">Nota mínima</label><input id="q-score" class="input" type="number" min="0" max="100" value="50"></div>
+          <div class="field"><label for="q-cidade">Cidade</label><select id="q-cidade" class="input"><option value="">Todas</option></select></div>
+          <button class="btn filled" id="montar-fila" type="button">Montar fila</button>
+        </div>
+        <div class="medidor"><span id="medidor-txt">Hoje: 0 de 15</span><span class="barra"><i id="medidor-barra" style="width:0"></i></span></div>
+        <div id="aviso-horario" class="aviso" hidden></div>
+        <p class="help">Mande no máximo 10 a 15 primeiras mensagens por dia, com 2 a 5 minutos entre elas, e só em horário comercial. Mais que isso e o WhatsApp restringe o número.</p>
+      </section>
+
+      <div class="fila" id="fila"></div>
+      <div id="fila-vazia" class="card vazio" hidden><b>Ninguém na fila.</b>Importe uma busca, ou afrouxe o mínimo de avaliações e a nota.</div>
+
+      <section class="card">
+        <div class="card-head row">
+          <div><h2>Follow-up</h2><p>Contatados há 2 dias ou mais que ainda não responderam. Depois disso, para.</p></div>
+          <button class="btn" id="montar-followup" type="button">Ver follow-ups</button>
+        </div>
+        <div class="fila" id="followup"></div>
+      </section>
+
+      <details class="card advanced" style="padding:0">
+        <summary>Marcar respostas pela lista do WhatsApp Web <span>(opcional)</span></summary>
+        <div class="adv stack" style="gap:10px">
+          <p class="help">1. Abra o WhatsApp Web e role a lista de conversas. 2. Abra o console do navegador (F12), cole o código abaixo e aperte Enter. 3. Copie o resultado e cole aqui. Ele só lê a lista, não abre nenhuma conversa.</p>
+          <code class="snippet" id="snippet"></code>
+          <div class="acoes"><button class="btn sm" id="copiar-snippet" type="button">Copiar código</button></div>
+          <textarea id="conversas" class="input" placeholder='Cole aqui o resultado: [{"titulo":"+55 31 9...","previa":"...","deles":true}]'></textarea>
+          <div class="acoes">
+            <button class="btn" id="conferir-respostas" type="button">Conferir</button>
+            <button class="btn filled" id="gravar-respostas" type="button">Gravar respostas</button>
+          </div>
+          <ul class="historico" id="respostas-achadas"></ul>
+        </div>
+      </details>
+    </section>
+
+    <!-- ═════════ Mensagens ═════════ -->
+    <section class="secao stack" id="sec-templates" data-secao="templates" hidden>
+      <div class="page-head">
+        <h1>Mensagens</h1>
+        <p>A primeira mensagem não vende, só pergunta. A fila escolhe pela língua do lead e alterna as versões de abertura, pra você comparar qual responde mais.</p>
+      </div>
+      <div class="templates">
+        <section class="card">
+          <div class="card-head row"><div><h2>Suas mensagens</h2></div><button class="btn" id="novo-template" type="button">Nova</button></div>
+          <ul class="lista-tpl" id="lista-tpl"></ul>
+        </section>
+        <section class="card stack" style="gap:12px">
+          <div class="card-head"><h2 id="tpl-titulo">Nova mensagem</h2></div>
+          <input type="hidden" id="tpl-id">
+          <div class="field"><label class="label" for="tpl-nome">Nome</label><input id="tpl-nome" class="input" type="text" placeholder="ex.: Pergunta C (pt)"></div>
+          <div class="grade2">
+            <div class="field"><label class="label" for="tpl-idioma">Língua</label>
+              <select id="tpl-idioma" class="input"><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option></select></div>
+            <div class="field"><label class="label" for="tpl-tipo">Quando usar</label>
+              <select id="tpl-tipo" class="input">
+                <option value="abertura">Primeira mensagem</option>
+                <option value="poucas">Primeira, com poucas avaliações</option>
+                <option value="followup">Follow-up</option>
+                <option value="outro">Outra</option>
+              </select></div>
+          </div>
+          <div class="field"><label class="label" for="tpl-corpo">Texto</label><textarea id="tpl-corpo" class="input" rows="6"></textarea></div>
+          <div class="chips" id="chips-var"></div>
+          <ul class="erros" id="tpl-erros"></ul>
+          <div><span class="label">Como chega pro lead</span><div class="previa-msg" id="tpl-previa"></div></div>
+          <div class="acoes">
+            <button class="btn filled" id="salvar-template" type="button">Salvar</button>
+            <button class="btn vermelho" id="apagar-template" type="button" hidden>Apagar</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═════════ Métricas ═════════ -->
+    <section class="secao stack" id="sec-metricas" data-secao="metricas" hidden>
+      <div class="page-head">
+        <h1>Métricas</h1>
+        <p>Quantas pessoas responderam a cada mensagem. Resposta automática não conta. Referência: perto de 10% de respostas de gente.</p>
+      </div>
+      <section class="card"><div class="card-head"><h2>Funil</h2></div><div class="funil" id="funil"></div></section>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mensagem</th><th class="num">Enviadas</th><th class="num">Responderam</th><th class="num">Taxa</th><th class="num">Robôs</th><th class="num">Clientes</th><th>Desde</th></tr></thead>
+          <tbody id="tbody-metricas"></tbody>
+        </table>
+      </div>
+      <section class="card"><div class="card-head"><h2>Envios por dia</h2></div><div class="funil" id="por-dia"></div></section>
+    </section>
+  </main>
+
+  <aside class="drawer" id="drawer" hidden></aside>
+  <script src="/app/leads.js"></script>
+</body>
+</html>

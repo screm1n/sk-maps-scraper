@@ -27,6 +27,7 @@ ready-to-run scripts, and a **Claude skill** so Claude knows exactly how to use 
 - 🐳 **One-command local setup** — `docker compose up -d` runs the scraper at `http://localhost:8080`.
 - 🤖 **A Claude skill** — open this folder in Claude Code and just say *"scrape coffee shops in Austin"*. Claude does create → poll → download → clean results, following best practices automatically.
 - 🛠️ **Standalone scripts** — `scripts/scrape.sh` (bash) and `scripts/scrape.py` (Python, no dependencies) if you'd rather not use Claude.
+- 🎯 **Leads mode** — import any scrape into a local lead database: A/B/C layers (who has no website), a 0–100 lead score, mobile vs landline in any country, a WhatsApp queue with ready messages, reply tracking, metrics and one-click proposals. See [Leads mode](#-leads-mode-from-a-list-to-clients).
 - 🔒 **Safe by default** — the scraper binds to `127.0.0.1` only, secrets are git-ignored, and the skill enforces rate-limit / legal / data-handling guardrails.
 
 ## What it scrapes (and what it doesn't)
@@ -85,6 +86,30 @@ It intentionally **does not** trigger for social media (Instagram/TikTok) — th
 
 ---
 
+## 🎯 Leads mode: from a list to clients
+
+Open **http://localhost:8080/leads**. Every finished scrape can be imported into a local lead
+database that does the qualifying for you:
+
+| | What it does |
+|---|---|
+| **A / B / C layers** | Reads each business's website field. **A** = nothing online. **B** = only a social profile, link-in-bio, WhatsApp link or a booking/directory page (Booksy, Square, Vagaro, Fresha, Doctoralia...) instead of a site. **C** = own website, leaves the queue. |
+| **Lead score 0–100** | Layer, mobile phone, review count, rating, e-mail. The lead panel shows where every point came from. |
+| **Mobile vs landline, any country** | Phones are read with each country's numbering plan ([libphonenumber-js](https://github.com/catamphetamine/libphonenumber-js)), plus Brazil's own rules. Landlines stay out of the WhatsApp queue; US/Canada numbers (where the plan can't tell) come in as "may have WhatsApp". |
+| **WhatsApp queue** | Best uncontacted leads with the message already written **in the lead's language** (Portuguese, Spanish, English). Opens the chat with the text typed; you press send. Daily cap meter (15) and an out-of-hours warning. |
+| **Messages** | Templates with `{{nome}}`, `{{nota}}`, `{{qtd_avaliacoes}}`... Openers alternate so you can compare them. Live check blocks em dashes and offers with no way out. SEO junk is cut from names ("Studio X \| Nails \| Lashes" becomes "Studio X"). |
+| **Sent log, replies, follow-up** | Mark what you sent; paste replies (auto-replies are recognized and don't count) or read them in bulk from the WhatsApp Web chat list; 48h follow-up list. |
+| **Metrics** | Funnel (imported → no site → WhatsApp → contacted → replied → client) and reply rate per message. |
+| **Proposal** | One click from a lead: a 3-page A4 proposal built from its real rating and reviews and how many same-category businesses in the city have a site. Save as PDF from the browser. |
+| **Block list** | "Asked to stop" blocks by phone and by place, so it never comes back, even in a new scrape. |
+
+Re-importing a scrape only refreshes Google's data; your statuses, notes and history are kept.
+The database lives in the `leads_data` Docker volume (or `leads/data/leads.db` without Docker).
+
+> **Use it responsibly.** Cold messages are personal-data processing (LGPD/GDPR). Keep the volume
+> low (10–15 first messages a day, minutes apart), always offer a way out, and honor every "stop".
+> In the US, cold SMS is illegal (TCPA).
+
 ## ⚠️ Rate limits, bans & responsible use
 
 The upstream project's guidance (and ours): *"Please use this scraper responsibly and in accordance with
@@ -127,9 +152,14 @@ google-maps-scraper-kit/
 ├── CLAUDE.md            ← auto-loaded instructions for Claude Code
 ├── CREDITS.md           ← attribution to the upstream author (gosom)
 ├── LICENSE              ← MIT (this kit)
-├── docker-compose.yml   ← runs the scraper locally on :8080
+├── docker-compose.yml   ← runs the scraper, the leads server and nginx on :8080
 ├── .env.example         ← config template
 ├── .gitignore
+├── frontend/            ← Mapa, Painel and Leads screens (+ proposta.html)
+├── leads/               ← leads server: Node 22, built-in SQLite, one dependency
+│   ├── server.js        ← API at /leads-api (+ serves the front-end when run alone)
+│   ├── src/dominio/     ← the rules: layers, score, phones, messages, auto-replies
+│   └── test/            ← `npm test`, plus a fake scraper to try it without Docker
 ├── scripts/
 │   ├── scrape.sh        ← one-shot bash scraper (single keyword)
 │   └── scrape.py        ← Python scraper: single, batch, + auto-geocoding (stdlib only)

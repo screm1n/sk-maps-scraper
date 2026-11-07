@@ -82,7 +82,7 @@ button, input, select { font: inherit; color: inherit; }
 
 /* capsule segmented control with a glass thumb */
 .mode-switch {
-  display: grid; grid-template-columns: 1fr 1fr; margin: 0 4px 10px; padding: 3px; border-radius: 999px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin: 0 4px 10px; padding: 3px; border-radius: 999px;
   background: rgba(118, 118, 128, .14); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06);
 }
 .mode-switch a {

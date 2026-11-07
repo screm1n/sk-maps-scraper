@@ -23,12 +23,30 @@ services:
   # nginx in front of the scraper: serves the new front-end (./frontend) at "/", keeps the
   # original UI at "/classic" (patched — its htmx 1.9.6 dropped the job table rows), and
   # proxies the API unchanged. Routing lives in nginx.conf.
+  # Leads server (./leads): turns finished scrapes into a qualified lead database with
+  # A/B/C layers, lead score, mobile vs landline, WhatsApp queue, templates, replies,
+  # metrics and proposals. Only reachable through nginx (/leads, /leads-api).
+  leads:
+    build: ./leads
+    container_name: gmaps-leads
+    restart: unless-stopped
+    depends_on:
+      - google-maps-scraper
+    environment:
+      GMAPS_URL: http://google-maps-scraper:8080
+      LEADS_DB: /data/leads.db
+    expose:
+      - "3000"
+    volumes:
+      - leads_data:/data         # the lead database: your statuses, notes and history live here
+
   web:
     image: nginx:1.27-alpine
     container_name: gmaps-web
     restart: unless-stopped
     depends_on:
       - google-maps-scraper
+      - leads
     ports:
       - "127.0.0.1:8080:80"     # localhost only — see warning above
     volumes:
@@ -39,3 +57,4 @@ services:
 volumes:
   gmaps_data:
   gmaps_cache:
+  leads_data:
