@@ -35,6 +35,10 @@ services:
     environment:
       GMAPS_URL: http://google-maps-scraper:8080
       LEADS_DB: /data/leads.db
+      HOST: 0.0.0.0            # inside the container; only nginx (127.0.0.1) reaches it
+      # Optional: keys for the paid sources. They can also be set in the screen (Onde raspar).
+      APIFY_TOKEN: ${APIFY_TOKEN:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     expose:
       - "3000"
     volumes:

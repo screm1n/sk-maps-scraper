@@ -43,6 +43,14 @@ metrics, proposals. Its API is `http://localhost:8080/leads-api/*` (e.g. `POST /
 user's behalf without explicit confirmation of who receives what. The rules live in `leads/src/dominio`
 and are covered by `cd leads && npm test`; keep them passing.
 
+## Scraping source (Local / Apify / Google Places)
+`/api/v1/jobs` is answered by the leads server, not the scraper: it forwards to the local scraper
+when the source is **Local**, and runs the search on **Apify** or **Google Places** otherwise (same job
+shape, same 34-column CSV). The source and the keys live in the leads database
+(`GET/POST /leads-api/fontes`). Apify and Places cost the user money or quota: before creating a job on
+them, say which source is active and the estimate (`GET /leads-api/fontes/estimativa?termos=&depth=`).
+Never print the keys.
+
 ## Setup
 If the container isn't running: `docker compose up -d`, then verify `curl http://localhost:8080/api/v1/jobs`.
 Full setup is in `SETUP.md`.

@@ -1,0 +1,65 @@
+/* Scraping source switch (Local / Apify / Google Places), shared by Mapa, Painel and Leads.
+   Self-contained: works over style.css (Mapa) and painel.css (Painel, Leads). */
+.fonte {
+  --f-azul: var(--blue, #1a73e8); --f-tinta: var(--label, #1d1d1f); --f-suave: var(--label-2, rgba(60, 60, 67, .72));
+  --f-fundo: rgba(118, 118, 128, .1); --f-verde: #188038; --f-ambar: #b06000; --f-vermelho: #d93025;
+  margin: 0 0 14px; padding: 12px; border-radius: 18px; background: rgba(26, 115, 232, .06);
+  box-shadow: inset 0 0 0 1px rgba(26, 115, 232, .16); font-family: inherit;
+}
+.fonte-topo { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 8px; }
+.fonte-topo b { font-size: 13px; font-weight: 700; letter-spacing: -.1px; color: var(--f-tinta); }
+.fonte-topo span { font-size: 11.5px; color: var(--f-suave); }
+.fonte-opcoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fonte-op {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 58px; padding: 9px 10px 8px;
+  border: 0; border-radius: 13px; background: rgba(255, 255, 255, .7); color: var(--f-tinta); cursor: pointer; text-align: left;
+  font: inherit; box-shadow: inset 0 0 0 1px rgba(60, 60, 67, .12); transition: background .2s, box-shadow .2s, transform .2s;
+}
+.fonte-op:hover { background: #fff; }
+.fonte-op:active { transform: scale(.97); }
+.fonte-op[aria-checked="true"] { background: #fff; box-shadow: inset 0 0 0 2px var(--f-azul), 0 4px 14px rgba(26, 115, 232, .18); }
+.fonte-op .nome { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.fonte-op .nome i { width: 8px; height: 8px; border-radius: 50%; background: rgba(60, 60, 67, .25); flex: none; }
+.fonte-op .nome i.ok { background: #34a853; box-shadow: 0 0 0 3px rgba(52, 168, 83, .18); }
+.fonte-op .nome i.atencao { background: #fbbc04; }
+.fonte-op .nome i.erro { background: #ea4335; }
+.fonte-op .sub { font-size: 11px; color: var(--f-suave); line-height: 1.25; }
+.fonte-op .tag { font-size: 10.5px; font-weight: 700; color: var(--f-azul); }
+.fonte-saldo { margin: 9px 2px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 12.5px; color: var(--f-tinta); }
+.fonte-saldo b { font-weight: 700; }
+.fonte-saldo small { color: var(--f-suave); font-size: 11.5px; }
+.fonte-saldo .acao { margin-left: auto; border: 0; background: none; color: var(--f-azul); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+.fonte-custo { margin: 6px 2px 0; font-size: 12px; color: var(--f-suave); }
+.fonte-custo b { color: var(--f-tinta); }
+.fonte-custo.caro b { color: var(--f-vermelho); }
+.fonte-aviso { margin: 6px 2px 0; font-size: 11.5px; color: var(--f-ambar); }
+.fonte-erro { margin: 6px 2px 0; font-size: 12px; color: var(--f-vermelho); }
+@media (max-width: 420px) { .fonte-op { min-height: 52px; padding: 8px; } .fonte-op .sub { display: none; } }
+
+/* sidebar pill (Painel, Leads) */
+.fonte-pilula { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(255, 255, 255, .6);
+  font-size: 11.5px; font-weight: 600; color: var(--label, #1d1d1f); text-decoration: none; cursor: pointer; border: 0; width: max-content; max-width: 100%; }
+.fonte-pilula i { width: 7px; height: 7px; border-radius: 50%; background: #34a853; flex: none; }
+.fonte-pilula span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* key setup dialog */
+dialog.fonte-dialogo { width: min(460px, calc(100% - 32px)); border: 0; border-radius: 24px; padding: 0; color: #1d1d1f;
+  box-shadow: 0 30px 80px rgba(20, 30, 60, .35); font: 14px/1.45 Inter, -apple-system, "Segoe UI", sans-serif; }
+dialog.fonte-dialogo::backdrop { background: rgba(20, 24, 40, .35); backdrop-filter: blur(3px); }
+.fonte-dialogo form { padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 12px; }
+.fonte-dialogo h2 { font-size: 18px; letter-spacing: -.3px; margin: 0; }
+.fonte-dialogo p { margin: 0; color: rgba(60, 60, 67, .8); font-size: 13px; }
+.fonte-dialogo ol { margin: 0; padding-left: 20px; font-size: 13px; color: rgba(60, 60, 67, .9); display: grid; gap: 4px; }
+.fonte-dialogo a { color: #1a73e8; }
+.fonte-dialogo label { font-size: 12px; font-weight: 600; color: rgba(60, 60, 67, .8); }
+.fonte-dialogo input { width: 100%; height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: rgba(118, 118, 128, .12);
+  font: 13.5px ui-monospace, Menlo, Consolas, monospace; box-sizing: border-box; }
+.fonte-dialogo input:focus { outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(26, 115, 232, .25), inset 0 0 0 1px rgba(26, 115, 232, .5); }
+.fonte-dialogo .botoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.fonte-dialogo button { height: 36px; padding: 0 16px; border: 0; border-radius: 999px; font: 600 13.5px Inter, sans-serif; cursor: pointer; }
+.fonte-dialogo .principal { color: #fff; background: linear-gradient(180deg, #4285f4, #1a73e8); box-shadow: 0 4px 14px rgba(26, 115, 232, .35); }
+.fonte-dialogo .principal:disabled { opacity: .6; cursor: default; }
+.fonte-dialogo .secundario { background: rgba(118, 118, 128, .12); color: #1d1d1f; }
+.fonte-dialogo .remover { margin-right: auto; background: none; color: #d93025; padding: 0 4px; }
+.fonte-dialogo .erro { color: #d93025; font-size: 12.5px; font-weight: 600; }
+.fonte-dialogo .nota { font-size: 11.5px; color: rgba(60, 60, 67, .6); }

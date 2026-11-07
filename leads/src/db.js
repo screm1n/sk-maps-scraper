@@ -75,6 +75,28 @@ CREATE TABLE IF NOT EXISTS bloqueio (
   criado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Settings: current scraping source and the API keys (local only, never sent back whole).
+CREATE TABLE IF NOT EXISTS config (
+  chave TEXT PRIMARY KEY,
+  valor TEXT
+);
+
+-- Searches that ran on Apify or Google Places. Local ones live in the scraper itself.
+CREATE TABLE IF NOT EXISTS buscas_externas (
+  id          TEXT PRIMARY KEY,
+  nome        TEXT,
+  fonte       TEXT NOT NULL,              -- apify | places
+  status      TEXT NOT NULL,              -- pending | working | ok | failed
+  pedido      TEXT NOT NULL,              -- the job body, JSON
+  execucao    TEXT,                       -- Apify run id
+  csv         TEXT,                       -- result in the scraper's 34-column CSV
+  lugares     INTEGER NOT NULL DEFAULT 0,
+  custo_usd   REAL,
+  erro        TEXT,
+  criado_em   TEXT NOT NULL DEFAULT (datetime('now')),
+  terminado_em TEXT
+);
+
 CREATE TABLE IF NOT EXISTS importacoes (
   busca_id    TEXT PRIMARY KEY,
   nome        TEXT,
@@ -117,6 +139,9 @@ export function abrirBanco(caminho = process.env.LEADS_DB || "./data/leads.db") 
   const db = new DatabaseSync(caminho);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
+  // CREATE TABLE IF NOT EXISTS doesn't add columns to an existing table.
+  const colunas = db.prepare("PRAGMA table_info(leads)").all().map((c) => c.name);
+  if (!colunas.includes("nao_reivindicado")) db.exec("ALTER TABLE leads ADD COLUMN nao_reivindicado INTEGER NOT NULL DEFAULT 0");
   const { n } = db.prepare("SELECT COUNT(*) AS n FROM templates").get();
   if (n === 0) {
     const ins = db.prepare("INSERT INTO templates (nome, idioma, tipo, corpo) VALUES (?, ?, ?, ?)");

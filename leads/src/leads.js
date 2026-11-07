@@ -27,18 +27,18 @@ export function gravarLugar(l) {
     l.nome, l.categoria ?? null, l.endereco ?? null, l.bairro ?? null, l.cidade ?? null, l.estado ?? null,
     l.pais ?? null, l.lat ?? null, l.lng ?? null, l.telefone ?? null, tel?.e164 ?? null, tel?.tipo ?? null,
     l.website ?? null, c.websiteNormalizado, c.camada, c.siteFraco ? 1 : 0, c.igHandle, l.emails ?? null,
-    l.nota ?? null, l.qtdAvaliacoes ?? 0, l.linkMaps ?? null, l.buscaId ?? null,
+    l.nota ?? null, l.qtdAvaliacoes ?? 0, l.linkMaps ?? null, l.buscaId ?? null, l.naoReivindicado ? 1 : 0,
   ];
   if (existe) {
     db().prepare(`UPDATE leads SET nome=?, categoria=?, endereco=?, bairro=?, cidade=?, estado=?, pais=?, lat=?, lng=?,
       telefone_bruto=?, telefone_e164=?, tipo_telefone=?, website=?, website_normalizado=?, camada=?, site_fraco=?,
       ig_handle=COALESCE(?, ig_handle), emails=COALESCE(?, emails), nota=?, qtd_avaliacoes=?, link_maps=?,
-      busca_id=COALESCE(?, busca_id), atualizado_em=datetime('now') WHERE id=?`).run(...campos, existe.id);
+      busca_id=COALESCE(?, busca_id), nao_reivindicado=?, atualizado_em=datetime('now') WHERE id=?`).run(...campos, existe.id);
     return "atualizado";
   }
   db().prepare(`INSERT INTO leads (nome, categoria, endereco, bairro, cidade, estado, pais, lat, lng,
       telefone_bruto, telefone_e164, tipo_telefone, website, website_normalizado, camada, site_fraco, ig_handle,
-      emails, nota, qtd_avaliacoes, link_maps, busca_id, chave) VALUES (${campos.map(() => "?").join(",")}, ?)`)
+      emails, nota, qtd_avaliacoes, link_maps, busca_id, nao_reivindicado, chave) VALUES (${campos.map(() => "?").join(",")}, ?)`)
     .run(...campos, l.chave);
   return "novo";
 }
@@ -51,7 +51,7 @@ export function paraLead(r) {
     telefone: r.telefone_bruto, telefoneE164: r.telefone_e164, tipoTelefone: r.tipo_telefone,
     website: r.website, camada: r.camada, siteFraco: !!r.site_fraco, igHandle: r.ig_handle,
     emails: r.emails, nota: r.nota, qtdAvaliacoes: r.qtd_avaliacoes, linkMaps: r.link_maps,
-    buscaId: r.busca_id, status: r.status, notas: r.notas, contatadoEm: r.contatado_em, criadoEm: r.criado_em,
+    buscaId: r.busca_id, naoReivindicado: !!r.nao_reivindicado, status: r.status, notas: r.notas, contatadoEm: r.contatado_em, criadoEm: r.criado_em,
   };
   lead.score = notaDoLead({ ...lead, temEmail: !!(r.emails && r.emails.includes("@")) });
   lead.whatsapp = podeWhatsApp(r.tipo_telefone) && !!r.telefone_e164;

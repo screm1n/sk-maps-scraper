@@ -43,6 +43,28 @@ Reimportar uma busca só atualiza os dados do Google. Status, notas e histórico
 
 ![Fila do WhatsApp com as mensagens prontas](docs/fila.png)
 
+## Onde raspar: Local, Apify ou Google Places
+
+No topo de toda busca (no Mapa e no Painel) tem o seletor **Onde raspar**. A fonte escolhida
+vale pras próximas buscas, e o resto do app não muda: o resultado chega no mesmo formato e
+entra nos Leads do mesmo jeito.
+
+![Seletor Onde raspar, com saldo e estimativa](docs/fonte.png)
+
+| Fonte | Custo | Quando usar |
+|---|---|---|
+| **Local** | grátis, sem limite | o dia a dia: o motor roda no seu PC |
+| **Apify** | crédito do Apify (US$ 5 grátis por mês, cerca de 1.000 empresas) | volume grande, ou quando o Google bloquear o seu IP: o Apify troca de IP |
+| **Google Places** | API oficial; 1.000 consultas grátis por mês, cada uma traz até 20 empresas | quando quiser a fonte oficial (precisa de faturamento ativo no Google Cloud) |
+
+Escolheu Apify ou Google Places e ainda não tem a chave? Abre uma janela com o passo a passo
+pra pegar a chave, que é testada antes de salvar. Com a chave salva, o seletor mostra o saldo
+(no Apify, o crédito que sobra no mês; no Google, as consultas grátis restantes, contadas por
+aqui) e a estimativa de custo da busca que você está montando.
+
+A chave fica só na sua máquina, no banco local. Se preferir, dá pra colocar `APIFY_TOKEN` e
+`GOOGLE_MAPS_API_KEY` no `.env`. E-mails só saem na raspagem Local.
+
 ## Começar
 
 Precisa do [Docker Desktop](https://www.docker.com/products/docker-desktop).
@@ -106,6 +128,7 @@ mesmo: *"raspa dentistas em Curitiba"*. Também tem os comandos `/scrape`, `/scr
 docker-compose.yml   motor de raspagem + servidor de leads + nginx na porta 8080
 frontend/            telas: Mapa, Painel, Leads e Proposta
 leads/               servidor de leads: Node 22, SQLite embutido, uma dependência
+  src/buscas.js      a API de buscas das três fontes (Local, Apify, Google Places)
   src/dominio/       as regras: camadas, nota, telefone, mensagens, respostas automáticas
   test/              npm test (regras e fluxo completo) e o scraper de exemplo
 scripts/             scrape.py e scrape.sh pra raspar pela linha de comando

@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/app/painel.css">
   <link rel="stylesheet" href="/app/leads.css">
+  <link rel="stylesheet" href="/app/fonte.css">
 </head>
 <body>
   <aside class="sidebar liquid">
@@ -32,6 +33,7 @@
       <a href="#metricas" class="nav-item" data-secao="metricas"><svg viewBox="0 0 24 24"><path d="M4.5 19.5V10M10 19.5V5M15.5 19.5v-7M21 19.5H3"/></svg>Métricas</a>
     </nav>
     <div class="sidebar-foot">
+      <button type="button" class="fonte-pilula" data-fonte-pilula title="Fonte da raspagem"></button>
       <span id="health" class="health"><i></i><span>verificando…</span></span>
       <a class="link-muted" href="https://github.com/gosom/google-maps-scraper" target="_blank" rel="noopener">motor: google-maps-scraper (MIT)</a>
     </div>
@@ -104,9 +106,9 @@
         <h1>Importar buscas</h1>
         <p>Cada busca terminada no scraper vira leads aqui: classificados, com nota e com o tipo de telefone. Importar de novo só atualiza os dados do Google, nunca o que você marcou.</p>
       </div>
-      <section class="card">
+      <section class="card"><div data-fonte-card></div>
         <div class="card-head row">
-          <div><h2>Buscas no scraper</h2><p>O país serve pra ler os telefones. Em "Automático" ele vem do endereço de cada empresa.</p></div>
+          <div><h2>Suas buscas</h2><p>De todas as fontes. O país serve pra ler os telefones. Em "Automático" ele vem do endereço de cada empresa.</p></div>
           <button class="btn" id="recarregar-buscas" type="button">Atualizar</button>
         </div>
         <ul class="jobs" id="lista-buscas"></ul>
@@ -218,5 +220,6 @@
 
   <aside class="drawer" id="drawer" hidden></aside>
   <script src="/app/leads.js"></script>
+  <script src="/app/fonte.js"></script>
 </body>
 </html>

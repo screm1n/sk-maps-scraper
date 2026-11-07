@@ -15,6 +15,7 @@ export const PESOS = {
   avaliacoesMuitas: 20,
   notaAlta: 10,
   comEmail: 5,
+  naoReivindicado: 12,
 };
 
 /**
@@ -46,6 +47,7 @@ export function notaDoLead(lead, pesos = PESOS) {
 
   if (lead.nota != null && lead.nota >= 4.3) add("nota", pesos.notaAlta, `nota ${lead.nota}, negócio bom sem site`);
   if (lead.temEmail) add("email", pesos.comEmail, "tem e-mail, dá pra seguir por e-mail");
+  if (lead.naoReivindicado) add("google", pesos.naoReivindicado, "ficha do Google sem dono, ninguém cuida");
 
   const bruto = fatores.reduce((s, f) => s + f.pontos, 0);
   return { total: Math.max(0, Math.min(100, bruto)), fatores };

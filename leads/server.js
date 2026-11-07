@@ -15,6 +15,9 @@ import { fileURLToPath } from "node:url";
 import { abrirBanco } from "./src/db.js";
 import { listarLeads, obterLead, atualizarLead, bloquearLead, cidades, resumo, levantamento } from "./src/leads.js";
 import { GMAPS_URL, importarBusca, listarBuscas } from "./src/importar.js";
+import { listarJobs, obterJob, criarJob, apagarJob, csvDoJob, estimar, recuperarPendentes, scraperLocalNoAr, ErroBusca } from "./src/buscas.js";
+import { infoFontes, escolherFonte, salvarChave, removerChave } from "./src/fontes/index.js";
+import { fonteAtual } from "./src/config.js";
 import {
   listarTemplates, salvarTemplate, apagarTemplate, obterTemplate, montarMensagem, templateParaLead,
   montarFila, filaFollowup, registrarEnvio, registrarResposta, registrarRespostasEmLote, metricas,
@@ -62,11 +65,17 @@ const id = (v) => {
 
 /** [method, pattern, handler(params, query, body)] */
 const ROTAS = [
-  ["GET", "/saude", async () => {
-    let scraper = false;
-    try { scraper = (await fetch(`${GMAPS_URL}/api/v1/jobs`, { signal: AbortSignal.timeout(3000) })).ok; } catch { /* down */ }
-    return { ok: true, scraper, tetoDiario: TETO_DIARIO, minAvaliacoesCopy: MIN_AVALIACOES_COPY };
-  }],
+  ["GET", "/saude", async () => ({
+    ok: true, scraper: await scraperLocalNoAr(), fonte: fonteAtual(), tetoDiario: TETO_DIARIO, minAvaliacoesCopy: MIN_AVALIACOES_COPY,
+  })],
+
+  // Scraping source: Local (free), Apify or Google Places. Keys are validated before saving
+  // and never sent back whole.
+  ["GET", "/fontes", () => infoFontes()],
+  ["POST", "/fontes/atual", (_p, _q, b) => escolherFonte(b.fonte)],
+  ["POST", "/fontes/:id/chave", (p, _q, b) => salvarChave(p.id, b.chave)],
+  ["DELETE", "/fontes/:id/chave", (p) => removerChave(p.id)],
+  ["GET", "/fontes/estimativa", (_p, q) => ({ fonte: fonteAtual(), ...estimar(fonteAtual(), Math.max(1, numero(q.termos, 1)), numero(q.depth, 5)) })],
   ["GET", "/resumo", () => resumo()],
   ["GET", "/cidades", () => cidades()],
 
@@ -131,6 +140,35 @@ const ROTAS = [
   return { metodo, re, chaves, fn };
 });
 
+/**
+ * /api/v1/jobs, the local scraper's own API, answered here so Mapa and Painel work with any
+ * source. Anything else under /api/v1 goes straight to the local scraper.
+ */
+async function apiJobs(req, res, caminho) {
+  const m = caminho.match(/^\/api\/v1\/jobs(?:\/([^/]+))?(\/download)?\/?$/);
+  if (!m) return false;
+  const [, id, download] = m;
+  try {
+    if (!id && req.method === "GET") return enviarJson(res, 200, await listarJobs()), true;
+    if (!id && req.method === "POST") {
+      const { status, corpo } = await criarJob(await lerCorpo(req));
+      return enviarJson(res, status, corpo), true;
+    }
+    if (id && download && req.method === "GET") {
+      const csv = await csvDoJob(decodeURIComponent(id));
+      res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${id}.csv"` });
+      return res.end(csv), true;
+    }
+    if (id && req.method === "GET") return enviarJson(res, 200, await obterJob(decodeURIComponent(id))), true;
+    if (id && req.method === "DELETE") return enviarJson(res, 200, await apagarJob(decodeURIComponent(id))), true;
+  } catch (e) {
+    const status = e instanceof ErroBusca || e instanceof ErroHttp ? e.status : 500;
+    if (status === 500) console.error(e);
+    return enviarJson(res, status, { message: e.message, erro: e.message }), true;
+  }
+  return false;
+}
+
 async function api(req, res, caminho, query) {
   for (const r of ROTAS) {
     if (r.metodo !== req.method) continue;
@@ -184,6 +222,7 @@ async function repassarScraper(req, res, url) {
 // ───────────────────────── server ─────────────────────────
 
 abrirBanco();
+recuperarPendentes();
 
 const servidor = createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
@@ -191,16 +230,20 @@ const servidor = createServer(async (req, res) => {
     if (url.pathname.startsWith("/leads-api/") || url.pathname === "/leads-api") {
       return await api(req, res, url.pathname.slice("/leads-api".length) || "/", Object.fromEntries(url.searchParams));
     }
+    if (url.pathname.startsWith("/api/v1/jobs") && (await apiJobs(req, res, url.pathname))) return;
     if (req.method === "GET" && (await estatico(res, url.pathname))) return;
     return await repassarScraper(req, res, url);
   } catch (e) {
-    const status = e instanceof ErroHttp ? e.status : 500;
+    const status = e instanceof ErroHttp || e instanceof ErroBusca ? e.status : Number(e.status) || (e.message && /Apify|Google|chave|token/i.test(e.message) ? 400 : 500);
     if (status === 500) console.error(e);
     if (!res.headersSent) enviarJson(res, status, { erro: e.message || "erro" });
   }
 });
 
-servidor.listen(PORTA, () => {
+// Only this machine by default: the server now holds API keys. Docker sets HOST=0.0.0.0
+// (the container is reachable only through nginx, which binds 127.0.0.1).
+const HOST = process.env.HOST || "127.0.0.1";
+servidor.listen(PORTA, HOST, () => {
   console.log(`\n  Leads no ar em http://localhost:${PORTA}/leads`);
   console.log(`  scraper: ${GMAPS_URL}`);
   console.log(`  banco: ${resolve(process.env.LEADS_DB || "./data/leads.db")}\n`);

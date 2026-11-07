@@ -4,7 +4,8 @@
 import { abrirBanco } from "./db.js";
 import { gravarLugar } from "./leads.js";
 
-export const GMAPS_URL = (process.env.GMAPS_URL || "http://localhost:8080").replace(/\/$/, "");
+import { listarJobs, csvDoJob } from "./buscas.js";
+export { GMAPS_URL } from "./buscas.js";
 
 /** RFC 4180 CSV, same rules as the kit front-end (quoted fields, "" escapes, CRLF). */
 export function lerCSV(texto) {
@@ -89,6 +90,8 @@ export function mapearLinha(r, ctx = {}) {
     nota: Number.isFinite(nota) ? nota : null,
     qtdAvaliacoes: Number.isFinite(qtd) ? qtd : 0,
     linkMaps: r.link || null,
+    // Only Apify knows it: nobody claimed the Google listing.
+    naoReivindicado: r.claim_this_business === "true",
     buscaId: ctx.buscaId || null,
   };
 }
@@ -125,13 +128,11 @@ export function importarLinhas(linhas, ctx = {}) {
   return conta;
 }
 
-/** Scraper jobs, each flagged with whether it was already imported. */
+/** Jobs from every source (local scraper, Apify, Google Places), each flagged if already imported. */
 export async function listarBuscas() {
-  const r = await fetch(`${GMAPS_URL}/api/v1/jobs`, { signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(`scraper respondeu ${r.status}`);
-  const jobs = await r.json();
+  const jobs = await listarJobs();
   const feitas = new Map(abrirBanco().prepare("SELECT busca_id, lidos, novos, pais, importado_em FROM importacoes").all().map((x) => [x.busca_id, x]));
-  return (Array.isArray(jobs) ? jobs : []).map((j) => {
+  return jobs.map((j) => {
     const d = j.Data || j.data || {};
     const id = j.ID || j.id;
     return {
@@ -140,14 +141,13 @@ export async function listarBuscas() {
       status: String(j.Status || j.status || "").toLowerCase(),
       criadoEm: j.Date || j.date || null,
       palavras: d.keywords || [],
+      fonte: d.fonte || "local",
       importacao: feitas.get(id) || null,
     };
   });
 }
 
 export async function importarBusca(buscaId, { pais, nome } = {}) {
-  const r = await fetch(`${GMAPS_URL}/api/v1/jobs/${encodeURIComponent(buscaId)}/download`, { signal: AbortSignal.timeout(60000) });
-  if (!r.ok) throw new Error(`não consegui baixar a busca (scraper respondeu ${r.status})`);
-  const linhas = lerCSV(await r.text());
+  const linhas = lerCSV(await csvDoJob(buscaId));
   return importarLinhas(linhas, { buscaId, pais: pais || null, nome });
 }
