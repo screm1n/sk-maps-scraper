@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2026 Mahan (github.com/mahanjafari-dev)
+Copyright (c) 2026 screm1n (github.com/screm1n): Leads mode (leads/, frontend/leads.*, frontend/proposta.*)
 
 This license covers the "Google Maps Scraper Kit" wrapper (Docker Compose setup,
 scripts, documentation, and Claude skill) ONLY. The underlying scraping engine,
