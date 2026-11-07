@@ -7,7 +7,7 @@ no seu PC. Você busca "barbearia em Lisboa" e o SK Maps Scraper separa quem nã
 uma nota pra cada negócio, diz se o telefone é celular e monta a fila de WhatsApp com a
 mensagem pronta.
 
-![Tela de Leads do SK Maps Scraper](docs/leads.png)
+![Mapa com o resultado de uma busca](docs/mapa.png)
 
 ## Como funciona
 
@@ -39,7 +39,9 @@ flowchart LR
 
 Reimportar uma busca só atualiza os dados do Google. Status, notas e histórico ficam.
 
-![Fila do WhatsApp](docs/fila.png)
+![Leads com camada, nota e tipo de telefone](docs/leads.png)
+
+![Fila do WhatsApp com as mensagens prontas](docs/fila.png)
 
 ## Começar
 
