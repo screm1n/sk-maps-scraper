@@ -1,3 +1,5 @@
+<img src="assets/logo-sk-512.png" alt="Logo do SK Maps Scraper" width="120" align="right">
+
 # SK Maps Scraper
 
 **Raspa o Google Maps de graça, rodando na sua máquina, e transforma a lista em clientes.**
@@ -110,6 +112,18 @@ cd leads && npm start
 ```
 
 Abre em http://localhost:3000/leads.
+
+### Atalho de app no Windows
+
+```bash
+powershell -ExecutionPolicy Bypass -File atalho\criar-atalhos.ps1
+```
+
+Cria o atalho **SK Maps Scraper** na Área de Trabalho e no menu Iniciar. Um clique sobe o que
+precisa e abre o app numa janela própria, sem abas. Com o Docker aberto, usa a raspagem Local de
+verdade; sem Docker, abre com o scraper de exemplo (Apify e Google Places funcionam igual). Os
+servidores ficam ligados depois que você fecha a janela: o atalho **Parar SK Maps Scraper**, no
+Iniciar, desliga tudo.
 
 Com o [Claude Code](https://claude.com/claude-code) aberto na pasta, dá pra pedir em português
 mesmo: *"raspa dentistas em Curitiba"*. Também tem os comandos `/scrape`, `/scrape-batch`,
