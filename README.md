@@ -23,7 +23,8 @@ flowchart LR
     F --> G[Proposta em PDF]
 ```
 
-1. **Raspa.** No Mapa ou no Painel, você digita o tipo de negócio e o lugar. O motor abre o
+1. **Raspa.** No Mapa ou no Painel, você digita o tipo de negócio e o lugar (no Mapa, dá pra
+   só clicar no bairro ou na cidade). O motor abre o
    Google Maps no seu PC e coleta nome, telefone, site, nota, avaliações, endereço e e-mail.
 2. **Qualifica.** Em Leads, você importa a busca. Cada negócio ganha uma camada e uma nota de
    0 a 100, e o telefone é lido pelas regras do país dele.

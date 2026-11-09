@@ -160,12 +160,13 @@
   }
   const radiusMeters = () => (+$("#radius").value || 5) * 1000;
 
-  function showLookup(g) {
+  function showLookup(g, fit = true) {
     if (!hasMap) return;
     if (lookupMarker) lookupMarker.remove();
     if (!g) { drawArea(); return; }
-    lookupMarker = L.marker([g.lat, g.lon], { icon: pinIcon("#1a73e8") }).addTo(map);
-    if (!state.current) drawArea(+g.lat, +g.lon, radiusMeters(), true);
+    lookupMarker = L.marker([g.lat, g.lon], { icon: pinIcon("#1a73e8"), draggable: !state.current, title: "Arraste para mudar o local" }).addTo(map);
+    lookupMarker.on("dragend", (e) => { const p = e.target.getLatLng(); pickOnMap(p.lat, p.lng); });
+    if (!state.current) drawArea(+g.lat, +g.lon, radiusMeters(), fit);
   }
 
   function plotRows(rows) {
@@ -313,7 +314,7 @@
     const km = +$("#radius").value;
     $("#radius-val").textContent = `${km} km`;
     $("#radius").style.setProperty("--fill-pct", `${((km - 1) / 19) * 100}%`);
-    $("#radius-hint").textContent = state.geo ? "Área em volta do local, desenhada no mapa." : "Digite o local acima para ver a área no mapa.";
+    $("#radius-hint").textContent = state.geo ? "Área em volta do local, desenhada no mapa." : "Digite o local acima ou clique no mapa.";
     if (state.geo && !state.current) drawArea(+state.geo.lat, +state.geo.lon, km * 1000, fit);
   }
   $("#radius").addEventListener("input", () => syncRadius(true));
@@ -339,17 +340,57 @@
     if (geoCache[key]) return geoCache[key];
     const hit = (await nominatim(place, "&countrycodes=br")) || (await nominatim(place, ""));
     if (!hit) return null;
-    const a = hit.address || {};
-    const uf = (a["ISO3166-2-lvl4"] || "").split("-")[1];
-    const label = [a.suburb || a.neighbourhood || a.city_district || a.quarter, a.city || a.town || a.village || a.municipality,
-      a.country_code === "br" ? uf || a.state : [a.state, a.country].filter(Boolean).join(", ")]
-      .filter(Boolean).join(", ") || hit.display_name.split(",").slice(0, 3).join(",");
-    const g = { lat: (+hit.lat).toFixed(6), lon: (+hit.lon).toFixed(6), label };
+    const g = { lat: (+hit.lat).toFixed(6), lon: (+hit.lon).toFixed(6), label: placeLabel(hit) };
     geoCache[key] = g; store("geo2", geoCache);
     return g;
   }
+  // "Savassi, Belo Horizonte, MG" in Brazil, "Alfama, Lisboa, Lisboa, Portugal" elsewhere.
+  function placeLabel(hit, cityOnly) {
+    const a = hit.address || {};
+    const uf = (a["ISO3166-2-lvl4"] || "").split("-")[1];
+    const bairro = cityOnly ? "" : a.suburb || a.neighbourhood || a.city_district || a.quarter;
+    return [bairro, a.city || a.town || a.village || a.municipality,
+      a.country_code === "br" ? uf || a.state : [a.state, a.country].filter(Boolean).join(", ")]
+      .filter(Boolean).join(", ") || (hit.display_name || "").split(",").slice(0, 3).join(",");
+  }
 
-  const GEO_HINT = 'Ex.: <em>dentista</em> em <em>Barra Funda, São Paulo</em>. Várias buscas? Separe por vírgula.';
+  // ───────────────────────── pick the place on the map ─────────────────────────
+  // Clicking the map (or dragging the blue pin) names the spot and uses it as the search location:
+  // zoomed out you get the city, zoomed in the neighbourhood.
+  let pickSeq = 0;
+  async function pickOnMap(lat, lon) {
+    const seq = ++pickSeq;
+    const hint = $("#geo-status");
+    const g = { lat: lat.toFixed(6), lon: lon.toFixed(6), label: "" };
+    showLookup(g, false);
+    hint.className = "footnote"; hint.textContent = "Descobrindo o nome do lugar…";
+    try {
+      const cityOnly = map.getZoom() <= 11;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&accept-language=pt-BR&zoom=14&lat=${g.lat}&lon=${g.lon}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("reverse " + r.status);
+      const hit = await r.json();
+      if (seq !== pickSeq) return;                                  // a newer click won
+      if (hit.error || !hit.address) { hint.className = "footnote warn"; hint.textContent = "Aí não tem um lugar com nome. Clique em outro ponto."; showLookup(state.geo); return; }
+      g.label = placeLabel(hit, cityOnly);
+      state.geo = g;
+      geoCache[g.label.trim().toLowerCase()] = g; store("geo2", geoCache);   // keep the clicked point, not the centroid
+      $("#location").value = g.label;
+      hint.className = "footnote ok"; hint.textContent = "📍 " + g.label + " (escolhido no mapa)";
+      showLookup(g, false);
+      syncRadius(false);
+      showError("");
+    } catch {
+      if (seq !== pickSeq) return;
+      hint.className = "footnote warn"; hint.textContent = "Sem acesso ao serviço de mapas agora. Digite o local.";
+    }
+  }
+  if (hasMap) {
+    map.getContainer().classList.add("pick");
+    map.on("click", (e) => { if (!state.current) pickOnMap(e.latlng.lat, e.latlng.lng); });
+  }
+
+  const GEO_HINT = 'Ex.: <em>dentista</em> em <em>Barra Funda, São Paulo</em>, ou <strong>clique no mapa</strong> no lugar. Várias buscas? Separe por vírgula.';
   let geoTimer;
   async function checkLocation() {
     const place = $("#location").value.trim();
@@ -433,6 +474,7 @@
   }
 
   async function openResults(job) {
+    if (hasMap) map.getContainer().classList.remove("pick");
     state.current = job.id;
     history.replaceState(null, "", `#job=${job.id}`);
     $("#to-painel").href = `/painel#job=${job.id}`;
@@ -469,6 +511,7 @@
   }
 
   function closeResults() {
+    if (hasMap) map.getContainer().classList.add("pick");
     state.current = null; state.rows = []; state.visible = [];
     history.replaceState(null, "", location.pathname);
     $("#to-painel").href = "/painel";
