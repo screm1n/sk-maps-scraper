@@ -8,11 +8,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { abrirBanco } from "../src/db.js";
 import { gravarConfig, mascarar } from "../src/config.js";
-import { linhaDoApify } from "../src/fontes/apify.js";
+import { linhaDoApify, idiomaApify } from "../src/fontes/apify.js";
 import { linhaDoPlaces } from "../src/fontes/places.js";
 import { paraCsv, lugaresPorProfundidade } from "../src/fontes/formato.js";
 import { lerCSV, mapearLinha, importarBusca } from "../src/importar.js";
-import { criarJob, listarJobs, obterJob, csvDoJob, estimar } from "../src/buscas.js";
+import { criarJob, listarJobs, obterJob, csvDoJob, estimar, apagarJob } from "../src/buscas.js";
 import { escolherFonte } from "../src/fontes/index.js";
 import { obterLead, listarLeads } from "../src/leads.js";
 
@@ -119,4 +119,30 @@ test("sem a chave, criar busca externa é recusado com mensagem", async () => {
   gravarConfig("fonte", "places");
   await assert.rejects(criarJob({ keywords: ["x"] }), /chave do Google Places/);
   gravarConfig("fonte", "local");
+});
+
+test("Apify: idioma no formato que o ator aceita (pt dava erro 400)", () => {
+  assert.equal(idiomaApify("pt"), "pt-BR");
+  assert.equal(idiomaApify(undefined), "pt-BR");
+  assert.equal(idiomaApify("en"), "en");
+  assert.equal(idiomaApify("es"), "es");
+});
+
+test("parar uma busca local some com ela, mesmo se o motor não souber dela", async () => {
+  const fetchAntes = globalThis.fetch;
+  const jobs = [{ ID: "fantasma", Name: "pilates", Date: "2026-11-10T10:00:00Z", Status: "working", Data: {} }];
+  globalThis.fetch = async (url, init = {}) => {
+    if (String(url).endsWith("/api/v1/jobs") && !init.method) return new Response(JSON.stringify(jobs), { status: 200 });
+    return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+  };
+  try {
+    escolherFonte("local");
+    assert.ok((await listarJobs()).some((j) => j.ID === "fantasma"));
+    assert.deepEqual(await apagarJob("fantasma"), { ok: true });
+    assert.ok(!(await listarJobs()).some((j) => j.ID === "fantasma"));
+    // Local engine missing (sample scraper answers 404): a clear message, not a raw error.
+    await assert.rejects(criarJob({ keywords: ["x"], lat: "0", lon: "0", max_time: 60 }), /motor Local não está instalado/);
+  } finally {
+    globalThis.fetch = fetchAntes;
+  }
 });

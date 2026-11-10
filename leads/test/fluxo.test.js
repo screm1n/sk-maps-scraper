@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { abrirBanco } from "../src/db.js";
 import { lerCSV, importarLinhas, mapearLinha, codigoDoPais } from "../src/importar.js";
 import { listarLeads, obterLead, atualizarLead, bloquearLead, levantamento } from "../src/leads.js";
-import { montarFila, registrarEnvio, registrarResposta, registrarRespostasEmLote, metricas, listarTemplates } from "../src/abordagem.js";
+import { mensagemParaLinha, montarFila, registrarEnvio, registrarResposta, registrarRespostasEmLote, metricas, listarTemplates } from "../src/abordagem.js";
 import { validarTemplate } from "../src/dominio/mensagem.js";
 
 const csv = readFileSync(new URL("./fixtures/busca.csv", import.meta.url), "utf8");
@@ -60,7 +60,7 @@ test("fila: só sem site, com WhatsApp, acima do corte, na língua do lead", () 
   assert.match(studio.mensagem.corpo, /Studio Bela Unha/);
   assert.doesNotMatch(studio.mensagem.corpo, /\|/);
   assert.match(studio.mensagem.corpo, /4,9/);
-  assert.match(studio.mensagem.link, /^https:\/\/wa\.me\/5531998765432\?text=/);
+  assert.match(studio.mensagem.link, /^https:\/\/web\.whatsapp\.com\/send\/\?phone=5531998765432&text=/);
 
   // Without the cut, the small one comes in with the version that doesn't quote reviews
   const semCorte = montarFila({ limite: 10, corteAvaliacoes: 0 }).fila.find((f) => f.lead.nome === "Esmalteria Pequena");
@@ -125,4 +125,19 @@ test("reimportar não apaga status nem notas", () => {
 
 test("levantamento só com 5+ do mesmo ramo na cidade", () => {
   assert.equal(levantamento("Manicure", "Belo Horizonte"), null); // only 3 manicures
+});
+
+test("WhatsApp do Painel: mensagem do lead direto da linha da busca, importada ou não", () => {
+  const [linha] = lerCSV(csv);
+  const m = mensagemParaLinha(linha);
+  assert.ok(m.whatsapp);
+  assert.match(m.link, /^https:\/\/web\.whatsapp\.com\/send\/\?phone=\d+&text=/);
+  assert.ok(m.corpo.length > 20);
+  assert.doesNotMatch(m.corpo, /\{\{/);
+  // A business that never got imported still gets its own message.
+  const nova = { ...linha, title: "Ateliê Nunca Importado", place_id: "nunca-importado", review_count: "3", review_rating: "5" };
+  const n = mensagemParaLinha(nova);
+  assert.equal(n.leadId, null);
+  assert.match(n.corpo, /Ateliê Nunca Importado/);
+  assert.equal(mensagemParaLinha({ title: "" }), null);
 });

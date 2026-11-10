@@ -87,11 +87,15 @@
   const digits = (s) => String(s || "").replace(/\D/g, "");
   const emailsOf = (r) => String(r.emails || "").split(/[\s,;]+/).filter((e) => e.includes("@"));
 
-  // Brazilian mobile (DDD + 9xxxxxxxx) → wa.me link.
+  // Brazilian mobile (DDD + 9xxxxxxxx), or a number with a foreign code → WhatsApp Web chat.
   function whatsapp(phone) {
     let d = digits(phone);
     if (d.startsWith("55") && d.length >= 12) d = d.slice(2);
-    return d.length === 11 && d[2] === "9" ? `https://wa.me/55${d}` : null;
+    if (d.length === 11 && d[2] === "9") return `https://web.whatsapp.com/send/?phone=55${d}`;
+    // Abroad ("+1 305...", "+351 9..."): can't tell mobile from landline here, so offer it.
+    const intl = digits(phone);
+    return /^\s*\+/.test(String(phone)) && !intl.startsWith("55") && intl.length >= 9 && intl.length <= 15
+      ? `https://web.whatsapp.com/send/?phone=${intl}` : null;
   }
 
   // Great-circle distance in meters.
@@ -287,25 +291,59 @@
     if (html !== renderJobs._last) { box.innerHTML = html; renderJobs._last = html; }
   }
 
+
+  // ───────────────────────── WhatsApp with the lead's message ─────────────────────────
+  // Same templates and rules as the Leads queue (opener, few reviews, has a site...). The tab
+  // is opened right on the click (popup blockers) and reused, so WhatsApp Web stays in one tab.
+  document.addEventListener("click", async (e) => {
+    const a = e.target.closest("a[data-wa]");
+    if (!a) return;
+    e.preventDefault(); e.stopPropagation();
+    const r = state.visible[+a.dataset.wa];
+    const aba = window.open("", "whatsapp");
+    let url = a.href;
+    try {
+      const resp = await fetch("/leads-api/mensagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ linha: r }) });
+      const m = resp.ok ? await resp.json() : null;
+      if (m?.link) url = m.link;
+      else if (m?.corpo) url = a.href + "&text=" + encodeURIComponent(m.corpo);
+    } catch {}
+    if (aba) aba.location.href = url; else window.open(url, "whatsapp");
+  }, true);
+
   async function deleteJob(job) {
-    const msg = job.status === "working"
-      ? `Parar a busca “${job.name}”? O que já foi coletado se perde.`
-      : `Apagar a busca “${job.name}”? Arquivos já baixados continuam no seu computador.`;
-    if (!confirm(msg)) return;
-    const r = await fetch(`${API}/${job.id}`, { method: "DELETE" });
-    if (!r.ok) return toast("Não consegui apagar essa busca.");
+    const parar = job.status === "working" || job.status === "pending";
+    if (!parar && !confirm(`Apagar a busca “${job.name}”? Os resultados somem daqui (arquivos já baixados continuam no seu computador).`)) return;
+    // Gone from the list right away; the server makes sure it stays gone.
+    state.jobs = state.jobs.filter((j) => j.id !== job.id);
+    renderJobs();
+    const r = await fetch(`${API}/${encodeURIComponent(job.id)}`, { method: "DELETE" }).catch(() => null);
+    if (!r || !r.ok) { toast("O servidor não respondeu. Tente de novo."); return refreshJobs(); }
     delete rowsCache[job.id]; delete state.stats[job.id];
     if (state.current === job.id) closeResults();
-    toast("Busca apagada.");
+    toast(parar ? "Busca parada." : "Busca apagada.");
     refreshJobs();
   }
+
 
   $("#jobs").addEventListener("click", (e) => {
     const li = e.target.closest(".job");
     const job = li && state.jobs.find((j) => j.id === li.dataset.id);
     if (!job) return;
-    if (e.target.closest("[data-act=delete]")) return deleteJob(job);
+    // Mouse clicks on the button are handled on pointerdown (below); this is the keyboard path.
+    if (e.target.closest("[data-act=delete]")) return e.detail === 0 ? deleteJob(job) : undefined;
     if (job.status === "ok") openResults(job, { scroll: true });
+  });
+  // The list is redrawn while searches run; a redraw between press and release would swallow
+  // the click. Acting on press makes "stop" work on the first try, every time.
+  $("#jobs").addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const btn = e.target.closest("[data-act=delete]");
+    const li = btn && btn.closest(".job");
+    const job = li && state.jobs.find((j) => j.id === li.dataset.id);
+    if (!job) return;
+    e.preventDefault();
+    deleteJob(job);
   });
   $("#jobs").addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
@@ -542,7 +580,7 @@
         <td><div class="co-name">${esc(r.title)}</div><div class="co-cat">${esc(r.category)}</div></td>
         <td><div class="contact">
           ${r.phone ? `<span>${esc(r.phone)}</span>` : `<span class="none">sem telefone</span>`}
-          ${wa ? `<a class="wa" href="${wa}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ""}
+          ${wa ? `<a class="wa" href="${wa}" data-wa="${i}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ""}
           ${emailsOf(r).map((m) => `<a href="mailto:${esc(m)}">${esc(m)}</a>`).join("")}
           ${site ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">${esc(site.length > 34 ? site.slice(0, 34) + "…" : site)}</a>` : ""}
         </div></td>

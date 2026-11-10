@@ -1,6 +1,7 @@
 # SK Maps Scraper: sobe o que precisa e abre o app numa janela propria.
 # Com Docker rodando: docker compose (raspagem Local de verdade, porta 8080).
-# Sem Docker: servidor de leads + scraper de exemplo (porta 3000). Apify e Google Places funcionam igual.
+# Sem Docker, com o motor baixado (atalho\baixar-motor.ps1): motor no Windows + servidor de leads (porta 3000).
+# Sem nenhum dos dois: servidor de leads + scraper de exemplo. Apify e Google Places funcionam igual.
 $ErrorActionPreference = "SilentlyContinue"
 $kit = Split-Path -Parent $PSScriptRoot
 $leads = Join-Path $kit "leads"
@@ -31,14 +32,27 @@ if ($docker) {
   if (-not (Test-Path (Join-Path $leads "node_modules"))) {
     Push-Location $leads; npm install *> $null; Pop-Location
   }
-  if (-not (Aberta 8082)) {
-    $env:PORT = "8082"
-    Start-Process node -ArgumentList "test/scraper-falso.js" -WorkingDirectory $leads -WindowStyle Hidden
-    Remove-Item Env:PORT
+  $motorDir = Join-Path $kit "motor"
+  $motor = Get-ChildItem $motorDir -Filter "google_maps_scraper-*.exe" | Sort-Object Name | Select-Object -Last 1
+  if ($motor) {
+    # Motor de verdade, so nesta maquina (127.0.0.1). Na primeira vez ele baixa o navegador que usa.
+    if (-not (Aberta 8080)) {
+      New-Item -ItemType Directory -Force (Join-Path $motorDir "dados") | Out-Null
+      Start-Process $motor.FullName -ArgumentList "-web", "-data-folder", "dados", "-addr", "127.0.0.1:8080" -WorkingDirectory $motorDir -WindowStyle Hidden
+    }
+    $gmaps = "http://localhost:8080"
+  } else {
+    if (-not (Aberta 8082)) {
+      $env:PORT = "8082"
+      Start-Process node -ArgumentList "test/scraper-falso.js" -WorkingDirectory $leads -WindowStyle Hidden
+      Remove-Item Env:PORT
+    }
+    $gmaps = "http://localhost:8082"
   }
   if (-not (Aberta 3000)) {
-    $env:GMAPS_URL = "http://localhost:8082"
-    $env:LEADS_DB = "./data/teste.db"
+    $env:GMAPS_URL = $gmaps
+    # Banco de verdade (data/leads.db). Nunca o de teste: os leads de exemplo tem numeros inventados.
+    Remove-Item Env:LEADS_DB -ErrorAction SilentlyContinue
     Start-Process node -ArgumentList "--no-warnings=ExperimentalWarning", "server.js" -WorkingDirectory $leads -WindowStyle Hidden
   }
   $porta = 3000; $url = "http://localhost:3000/leads"

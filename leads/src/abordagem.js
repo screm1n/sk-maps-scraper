@@ -2,7 +2,9 @@
 import { abrirBanco } from "./db.js";
 import { listarLeads, obterLead, paraLead } from "./leads.js";
 import { idiomaDoPais, renderizar, validarTemplate } from "./dominio/mensagem.js";
-import { linkWhatsApp } from "./dominio/telefone.js";
+import { linkWhatsApp, lerTelefone, podeWhatsApp } from "./dominio/telefone.js";
+import { classificar } from "./dominio/classificar.js";
+import { mapearLinha } from "./importar.js";
 import { ehAutomatica } from "./dominio/respostas.js";
 
 const db = () => abrirBanco();
@@ -57,6 +59,30 @@ export function montarMensagem(lead, template) {
     faltando,
     link: lead.whatsapp ? linkWhatsApp(lead.telefoneE164, corpo) : null,
   };
+}
+
+/**
+ * Ready message for a business straight from a search result (Painel/Mapa), imported or not.
+ * An imported lead keeps its own data and template rotation; otherwise the row is read the
+ * same way the import reads it.
+ * @param {Record<string,string>} linha row of the scraper CSV
+ */
+export function mensagemParaLinha(linha) {
+  const l = mapearLinha(linha);
+  if (!l) return null;
+  const salvo = db().prepare("SELECT id FROM leads WHERE chave = ?").get(l.chave);
+  let lead;
+  if (salvo) lead = obterLead(salvo.id);
+  else {
+    const tel = lerTelefone(l.telefone, l.pais);
+    let id = 0;
+    for (const c of String(l.chave)) id = (id * 31 + c.charCodeAt(0)) >>> 0;
+    lead = { ...l, id, camada: classificar(l.website).camada, telefoneE164: tel?.e164 ?? null, tipoTelefone: tel?.tipo ?? null };
+    lead.whatsapp = !!tel && podeWhatsApp(tel.tipo);
+  }
+  const t = templateParaLead(lead);
+  if (!t) return { leadId: salvo?.id ?? null, whatsapp: lead.whatsapp, tipoTelefone: lead.tipoTelefone, link: null, corpo: null };
+  return { leadId: salvo?.id ?? null, whatsapp: lead.whatsapp, tipoTelefone: lead.tipoTelefone, ...montarMensagem(lead, t) };
 }
 
 // ───────────────────────── queue ─────────────────────────

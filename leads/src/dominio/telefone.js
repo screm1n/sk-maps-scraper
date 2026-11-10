@@ -68,10 +68,13 @@ function internacional(texto, pais) {
   return { e164: p.number, tipo };
 }
 
-/** Link that opens the chat with the text already typed. */
+/**
+ * Link that opens the chat with the text already typed. web.whatsapp.com goes straight to the
+ * chat in a logged-in WhatsApp Web; wa.me stops on a "continue to chat" page on desktop.
+ */
 export function linkWhatsApp(e164, texto) {
   const d = String(e164).replace(/\D/g, "");
-  return `https://wa.me/${d}?text=${encodeURIComponent(texto)}`;
+  return `https://web.whatsapp.com/send/?phone=${d}&text=${encodeURIComponent(texto)}&type=phone_number&app_absent=0`;
 }
 
 export const podeWhatsApp = (tipo) => tipo === "celular" || tipo === "indefinido";

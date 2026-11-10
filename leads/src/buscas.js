@@ -61,7 +61,8 @@ export async function listarJobs() {
   let locais = [];
   if (r?.ok) {
     const j = await r.json().catch(() => []);
-    locais = (Array.isArray(j) ? j : []).map((x) => ({ ...x, Data: { ...(x.Data || x.data || {}), fonte: "local" } }));
+    const ocultas = new Set(db().prepare("SELECT id FROM buscas_ocultas").all().map((x) => x.id));
+    locais = (Array.isArray(j) ? j : []).filter((x) => !ocultas.has(x.ID)).map((x) => ({ ...x, Data: { ...(x.Data || x.data || {}), fonte: "local" } }));
   }
   const externas = db().prepare("SELECT * FROM buscas_externas ORDER BY criado_em DESC").all().map(comoJob);
   return [...externas, ...locais].sort((a, b) => String(b.Date || "").localeCompare(String(a.Date || "")));
@@ -95,9 +96,11 @@ export async function apagarJob(id) {
     db().prepare("DELETE FROM buscas_externas WHERE id = ?").run(id);
     return { ok: true };
   }
-  const r = await local(`/api/v1/jobs/${encodeURIComponent(id)}`, { method: "DELETE" });
-  if (!r) throw new ErroBusca(502, `scraper local fora do ar em ${baseLocal()}`);
-  return { ok: r.ok };
+  // The local engine may not know the job (gone, or a sample job) or may be down. Stopping must
+  // always work for the user, so the job is also hidden here and never listed again.
+  await local(`/api/v1/jobs/${encodeURIComponent(id)}`, { method: "DELETE" });
+  db().prepare("INSERT OR IGNORE INTO buscas_ocultas (id) VALUES (?)").run(id);
+  return { ok: true };
 }
 
 /**
@@ -111,7 +114,8 @@ export async function criarJob(pedido) {
 
   if (fonte === "local") {
     const r = await local("/api/v1/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pedido) });
-    if (!r) throw new ErroBusca(502, "O scraper local está fora do ar. Rode docker compose up -d, ou troque a fonte pra Apify ou Google Places.");
+    if (!r) throw new ErroBusca(502, "O motor Local está fora do ar. Abra o Docker Desktop (ou rode docker compose up -d), ou troque a fonte pra Apify.");
+    if (r.status === 404 || r.status === 405) throw new ErroBusca(503, "O motor Local não está instalado: o app está rodando com o scraper de exemplo, que só mostra dados de teste. Instale o Docker Desktop pra raspar de graça, ou troque a fonte pra Apify.");
     return { status: r.status, corpo: await r.json().catch(() => ({})) };
   }
 

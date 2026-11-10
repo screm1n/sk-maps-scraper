@@ -21,7 +21,7 @@ import { infoFontes, escolherFonte, salvarChave, removerChave } from "./src/font
 import { fonteAtual } from "./src/config.js";
 import {
   listarTemplates, salvarTemplate, apagarTemplate, obterTemplate, montarMensagem, templateParaLead,
-  montarFila, filaFollowup, registrarEnvio, registrarResposta, registrarRespostasEmLote, metricas,
+  montarFila, filaFollowup, mensagemParaLinha, registrarEnvio, registrarResposta, registrarRespostasEmLote, metricas,
   TETO_DIARIO, MIN_AVALIACOES_COPY,
 } from "./src/abordagem.js";
 import { validarTemplate, VARIAVEIS } from "./src/dominio/mensagem.js";
@@ -150,6 +150,7 @@ const ROTAS = [
   ["GET", "/fila/followup", (_p, q) => filaFollowup({ dias: numero(q.dias, 2) })],
   ["POST", "/respostas/lote", (_p, _q, b) => registrarRespostasEmLote(b.conversas, { gravar: !!b.gravar })],
 
+  ["POST", "/mensagem", (_p, _q, b) => mensagemParaLinha(b?.linha || {}) ?? (() => { throw new ErroHttp(422, "linha sem nome"); })()],
   ["GET", "/templates", () => ({ templates: listarTemplates(), variaveis: VARIAVEIS })],
   ["POST", "/templates", (_p, _q, b) => {
     if (!b.nome || !b.corpo) throw new ErroHttp(400, "nome e corpo obrigatórios");

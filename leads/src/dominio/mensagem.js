@@ -69,6 +69,7 @@ const PADROES_OPTOUT = [
   /n[ãa]o (tiver|tiverem|ter|tem) interesse/,
   /n[ãa]o (for|for do) (seu )?interesse/,
   /sem interesse/,
+  /n[ãa]o (for|seja|e) (o|um bom) momento/,
   /descadastr/,
   /sair da lista/,
   /(e|é) s[óo] (me )?(falar|avisar|dizer) que (eu )?paro/,

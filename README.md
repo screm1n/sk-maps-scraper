@@ -121,10 +121,19 @@ powershell -ExecutionPolicy Bypass -File atalho\criar-atalhos.ps1
 ```
 
 Cria o atalho **SK Maps Scraper** na Área de Trabalho e no menu Iniciar. Um clique sobe o que
-precisa e abre o app numa janela própria, sem abas. Com o Docker aberto, usa a raspagem Local de
-verdade; sem Docker, abre com o scraper de exemplo (Apify e Google Places funcionam igual). Os
-servidores ficam ligados depois que você fecha a janela: o atalho **Parar SK Maps Scraper**, no
-Iniciar, desliga tudo.
+precisa e abre o app numa janela própria, sem abas. Os servidores ficam ligados depois que você
+fecha a janela: o atalho **Parar SK Maps Scraper**, no Iniciar, desliga tudo.
+
+**Sem Docker, raspando de graça mesmo assim:** baixe o motor como programa do Windows. O script
+pega o release oficial do gosom e só aceita o arquivo se o SHA-256 bater com o publicado.
+
+```bash
+powershell -ExecutionPolicy Bypass -File atalho\baixar-motor.ps1
+```
+
+A partir daí o atalho liga esse motor (só nesta máquina, em `127.0.0.1:8080`). Na primeira busca
+ele baixa sozinho o navegador que usa pra raspar. Sem Docker e sem o motor, o atalho abre com o
+scraper de exemplo, e Apify e Google Places funcionam igual.
 
 Com o [Claude Code](https://claude.com/claude-code) aberto na pasta, dá pra pedir em português
 mesmo: *"raspa dentistas em Curitiba"*. Também tem os comandos `/scrape`, `/scrape-batch`,

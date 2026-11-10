@@ -35,6 +35,10 @@ export async function saldoApify(token) {
 
 export const estimarApify = (termos, porTermo) => +(USD_FIXO + termos * porTermo * USD_POR_LUGAR).toFixed(2);
 
+// The actor only takes its own list: "pt-BR"/"pt-PT", not "pt" (that 400s the whole run).
+const IDIOMAS_APIFY = { pt: "pt-BR", br: "pt-BR", "pt-br": "pt-BR", "pt-pt": "pt-PT", en: "en", es: "es" };
+export const idiomaApify = (lang) => IDIOMAS_APIFY[String(lang || "pt").toLowerCase()] || "pt-BR";
+
 /** @param {{keywords: string[], lang?: string}} pedido */
 export async function iniciarApify(token, pedido, porTermo) {
   const r = await pedir(token, `/acts/${ATOR}/runs`, {
@@ -43,7 +47,7 @@ export async function iniciarApify(token, pedido, porTermo) {
     body: JSON.stringify({
       searchStringsArray: pedido.keywords,
       maxCrawledPlacesPerSearch: porTermo,
-      language: pedido.lang || "pt-BR",
+      language: idiomaApify(pedido.lang),
       website: "allPlaces",
       skipClosedPlaces: true,
     }),

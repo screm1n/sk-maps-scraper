@@ -33,7 +33,7 @@ test("telefone: Brasil, Portugal, Espanha e EUA", () => {
   assert.equal(lerTelefone("+351 12", "PT"), null);
   assert.equal(lerTelefone("+1 212 736 5000").tipo, "indefinido"); // +1 with no country also works
   assert.equal(lerTelefone("11987654321").e164, "+5511987654321"); // no + means Brazil
-  assert.equal(linkWhatsApp("+5531999998888", "Oi, tudo?"), "https://wa.me/5531999998888?text=Oi%2C%20tudo%3F");
+  assert.equal(linkWhatsApp("+5531999998888", "Oi, tudo?"), "https://web.whatsapp.com/send/?phone=5531999998888&text=Oi%2C%20tudo%3F&type=phone_number&app_absent=0");
 });
 
 test("nota: site próprio zera, sem site e celular sobe", () => {
@@ -63,6 +63,7 @@ test("validação: travessão barra, pergunta pura passa, oferta sem saída barr
   assert.equal(validarTemplate("Oi! Vi vocês no Google. Hoje o cliente chega por indicação ou pelo Google?").ok, true);
   assert.equal(validarTemplate("Oi, faço sites. Posso te mandar uma ideia?").ok, false);
   assert.equal(validarTemplate("Hi! I build websites. Can I send you a preview?").ok, false);
+  assert.equal(validarTemplate("Oi! Já fiz uma prévia pro seu site. Posso enviar? Se não for o momento, sem problema.").ok, true);
   assert.equal(validarTemplate("Hi! Want a preview? If you're not interested, no worries.").ok, true);
   assert.equal(validarTemplate("¡Hola! Hago páginas web. Si no te interesa, no hay problema.").ok, true);
 });

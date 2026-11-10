@@ -24,3 +24,6 @@ leads/data/
 *.db-wal
 *.db-shm
 !leads/test/fixtures/*.csv
+
+# Local engine (Windows exe, downloaded by atalho/baixar-motor.ps1) and its data
+motor/

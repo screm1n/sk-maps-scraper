@@ -97,6 +97,12 @@ CREATE TABLE IF NOT EXISTS buscas_externas (
   terminado_em TEXT
 );
 
+-- Local jobs the user stopped or deleted: hidden even if the engine still lists them.
+CREATE TABLE IF NOT EXISTS buscas_ocultas (
+  id          TEXT PRIMARY KEY,
+  criado_em   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS importacoes (
   busca_id    TEXT PRIMARY KEY,
   nome        TEXT,
@@ -107,12 +113,10 @@ CREATE TABLE IF NOT EXISTS importacoes (
 );
 `;
 
-/** First messages ask, they don't sell (see README). Seeded only on an empty table. */
+/** PT opener offers the preview, with a way out; ES/EN openers only ask. Seeded only on an empty table. */
 const TEMPLATES_INICIAIS = [
-  ["Pergunta A (pt)", "pt", "abertura",
-    "Oi, tudo bem? Vi a {{nome}} no Google, nota {{nota}} com {{qtd_avaliacoes}} avaliações, mas não achei um site de vocês.\n\nHoje o cliente novo chega mais por indicação ou vocês também pegam pelo Google?"],
-  ["Pergunta B (pt)", "pt", "abertura",
-    "Oi! Achei a {{nome}} pesquisando no Google, {{qtd_avaliacoes}} avaliações e nota {{nota}}, muito bom. Só não encontrei um site.\n\nA maioria dos clientes de vocês vem por indicação ou pelo Google mesmo?"],
+  ["Prévia pronta (pt)", "pt", "abertura",
+    "Oi, tudo bem? Vi que a {{nome}} tem nota {{nota}} no Google, isso vale ouro. Só que quem pesquisa e acha vocês no Google não tem um site pra ver o trabalho e chamar no WhatsApp, e acaba fechando com a concorrência. Eu monto site pra negócios que têm potencial de captação de clientes pelo Google e fiz uma prévia pra resolver esse seu problema. Posso enviar pra vocês darem uma olhada? Se não for o momento, sem problema, pode me chamar outra hora."],
   ["Pergunta, poucas avaliações (pt)", "pt", "poucas",
     "Oi, tudo bem? Vi a {{nome}} aparecendo no Google, mas não achei um site de vocês.\n\nHoje o cliente novo chega mais por indicação ou vocês também pegam pelo Google?"],
   ["Follow-up 48h (pt)", "pt", "followup",

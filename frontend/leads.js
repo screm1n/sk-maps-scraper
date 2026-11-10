@@ -147,7 +147,7 @@
       </div>
       <div class="drawer-body">
         <div class="acoes">
-          ${l.whatsapp ? `<a class="btn verde sm" href="https://wa.me/${esc(l.telefoneE164.replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+          ${l.whatsapp ? `<a class="btn verde sm" href="https://web.whatsapp.com/send/?phone=${esc(l.telefoneE164.replace(/\D/g, ""))}" data-lead-wa="${l.id}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
           ${l.linkMaps ? `<a class="btn sm" href="${esc(l.linkMaps)}" target="_blank" rel="noopener">Google Maps</a>` : ""}
           ${l.website ? `<a class="btn sm" href="${esc(/^https?:/.test(l.website) ? l.website : "https://" + l.website)}" target="_blank" rel="noopener">${l.camada === "C" ? "Site" : "Link no Google"}</a>` : ""}
           <a class="btn filled sm" href="/proposta?lead=${l.id}" target="_blank" rel="noopener">Gerar proposta</a>
@@ -557,3 +557,18 @@
   setInterval(saude, 30000);
   mostrar();
 })();
+
+// WhatsApp in the lead drawer: opens the chat with this lead's message already typed.
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("a[data-lead-wa]");
+  if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  const aba = window.open("", "whatsapp");
+  let url = a.href;
+  try {
+    const r = await fetch(`/leads-api/leads/${a.dataset.leadWa}/mensagem`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const m = r.ok ? await r.json() : null;
+    if (m?.link) url = m.link;
+  } catch {}
+  if (aba) aba.location.href = url; else window.open(url, "whatsapp");
+}, true);
