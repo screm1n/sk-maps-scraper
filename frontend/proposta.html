@@ -6,14 +6,16 @@
 <title>Proposta</title>
 <link rel="icon" type="image/png" href="/app/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <style>
-  /* Proposal in A4 sheets: the same page is the on-screen preview and, with Ctrl+P, the PDF. */
-  :root { --papel: #FBFAF7; --tinta: #15171C; --suave: #5B606B; --linha: #E7E3DA; --acento: #2F5D50; --acento-fundo: #EAEFED; }
+  /* Proposal in A4 sheets: the same page is the on-screen preview and, with Ctrl+P, the PDF.
+     Type: Inter, the open stand-in for Apple's San Francisco (SF can't be embedded or published). */
+  :root { --papel: #FBFAF7; --tinta: #15171C; --suave: #5B606B; --linha: #E7E3DA; --acento: #2F5D50; --acento-fundo: #EAEFED;
+    --texto: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { background: #E9E6DF; font-family: "DM Sans", system-ui, sans-serif; color: var(--tinta); font-size: 10.5pt; line-height: 1.55; }
+  body { background: #E9E6DF; font-family: var(--texto); font-feature-settings: "cv11", "ss01"; color: var(--tinta); font-size: 10pt; line-height: 1.55; }
 
   /* editor (screen only) */
   .editor { position: fixed; top: 16px; left: 16px; bottom: 16px; width: 320px; overflow: auto; z-index: 5; padding: 18px;
@@ -28,6 +30,8 @@
   .editor button { width: 100%; height: 40px; margin-top: 16px; border: 0; border-radius: 999px; cursor: pointer; font: 600 14px Inter, sans-serif; color: #fff;
     background: linear-gradient(180deg, #4285f4, #1a73e8); box-shadow: 0 4px 14px rgba(26,115,232,.35); }
   .editor .erro { color: #d93025; font-weight: 600; }
+  .editor label.marcar { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12.5px; }
+  .editor label.marcar input { width: auto; height: auto; }
   .folhas { margin-left: 352px; padding: 16px 0; }
 
   .folha { width: 210mm; height: 297mm; margin: 0 auto 10mm; background: var(--papel); padding: 17mm 18mm 15mm; position: relative; overflow: hidden; display: flex; flex-direction: column; }
@@ -41,12 +45,12 @@
   @media (max-width: 1100px) { .editor { position: static; width: auto; margin: 12px; } .folhas { margin-left: 0; overflow-x: auto; } }
 
   .topo { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 5mm; border-bottom: 1px solid var(--linha); }
-  .marca { font-family: "DM Serif Display", serif; font-size: 14pt; }
+  .marca { font-family: var(--texto); font-weight: 700; letter-spacing: -0.03em; font-size: 14pt; }
   .meta { font-size: 8.5pt; color: var(--suave); text-align: right; }
   .rodape { margin-top: auto; padding-top: 5mm; border-top: 1px solid var(--linha); display: flex; justify-content: space-between; font-size: 8pt; color: var(--suave); }
-  h1.gancho { font-family: "DM Serif Display", serif; font-weight: 400; font-size: 38pt; line-height: 1.04; letter-spacing: -0.02em; margin-top: 16mm; }
+  h1.gancho { font-family: var(--texto); font-weight: 700; font-size: 34pt; line-height: 1.06; letter-spacing: -0.035em; margin-top: 16mm; }
   h1.gancho em { font-style: normal; color: var(--acento); display: block; }
-  h2 { font-family: "DM Serif Display", serif; font-weight: 400; font-size: 24pt; line-height: 1.1; letter-spacing: -0.015em; }
+  h2 { font-family: var(--texto); font-weight: 700; font-size: 22pt; line-height: 1.12; letter-spacing: -0.03em; }
   .para { font-size: 9pt; color: var(--suave); margin-top: 10mm; }
   .para b { color: var(--tinta); font-weight: 600; }
   .abre { font-size: 12.5pt; line-height: 1.6; margin-top: 8mm; max-width: 150mm; color: #2A2D34; }
@@ -54,13 +58,13 @@
   .achados h3 { font-size: 8.5pt; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); padding: 5mm 6mm 0; }
   .linha-dado { display: grid; grid-template-columns: 36mm 1fr; gap: 6mm; padding: 4.2mm 6mm; border-top: 1px solid var(--linha); align-items: baseline; }
   .linha-dado:first-of-type { border-top: 0; }
-  .numero { font-family: "DM Serif Display", serif; font-size: 20pt; line-height: 1; color: var(--acento); }
+  .numero { font-family: var(--texto); font-weight: 700; letter-spacing: -0.03em; font-size: 20pt; line-height: 1; color: var(--acento); }
   .chamada { margin-top: auto; margin-bottom: 8mm; padding: 6mm 7mm; border-radius: 4mm; background: var(--acento-fundo); display: flex; justify-content: space-between; align-items: center; gap: 8mm; }
   .chamada p { font-size: 11.5pt; font-weight: 500; }
   .chamada span { font-size: 9pt; color: var(--suave); white-space: nowrap; }
   .motivos { margin-top: 8mm; display: grid; gap: 5mm; }
   .motivo { display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; }
-  .motivo .n { font-family: "DM Serif Display", serif; font-size: 16pt; color: var(--acento); line-height: 1.1; }
+  .motivo .n { font-family: var(--texto); font-weight: 700; letter-spacing: -0.03em; font-size: 16pt; color: var(--acento); line-height: 1.1; }
   .motivo b { display: block; font-size: 11.5pt; margin-bottom: .5mm; }
   .motivo p { color: var(--suave); }
   .previa { margin-top: 10mm; }
@@ -72,24 +76,54 @@
   .sem-print { height: 70mm; display: grid; place-items: center; color: var(--suave); font-size: 10pt; background: repeating-linear-gradient(45deg, #fff, #fff 6px, #F6F4EF 6px, #F6F4EF 12px); }
   .legenda { margin-top: 3.5mm; font-size: 9pt; color: var(--suave); display: flex; justify-content: space-between; }
   .legenda a { color: var(--acento); font-weight: 600; text-decoration: none; }
-  .incluso { margin-top: 6mm; display: grid; grid-template-columns: 1fr 1fr; gap: 3.4mm 9mm; }
+  .incluso { margin-top: 5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 2.8mm 9mm; }
   .item b { display: block; font-size: 10.5pt; padding-left: 4.5mm; position: relative; }
   .item b::before { content: ""; position: absolute; left: 0; top: 2.1mm; width: 2mm; height: 2mm; border-radius: 50%; background: var(--acento); }
   .item p { color: var(--suave); font-size: 9.2pt; padding-left: 4.5mm; margin-top: .4mm; }
-  .passos { margin-top: 7mm; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--linha); border-radius: 3.5mm; overflow: hidden; }
+  .passos { margin-top: 6mm; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--linha); border-radius: 3.5mm; overflow: hidden; }
   .passo { padding: 4.5mm 5mm; border-left: 1px solid var(--linha); background: #fff; }
   .passo:first-child { border-left: 0; }
   .passo small { font-size: 7.5pt; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--acento); }
   .passo p { font-size: 9.5pt; margin-top: 1mm; }
-  .investimento { margin-top: 8mm; }
-  .cartoes { margin-top: 5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
-  .cartao { border: 1px solid var(--linha); border-radius: 4mm; padding: 5.5mm 6mm; background: #fff; }
+  .investimento { margin-top: 6mm; }
+  .cartoes { margin-top: 5mm; display: grid; grid-template-columns: repeat(var(--colunas, 2), 1fr); gap: 4mm; }
+  .oferta { margin-top: 4mm; display: flex; align-items: baseline; gap: 4mm; flex-wrap: wrap; }
+  .oferta s { font-size: 13pt; color: var(--suave); }
+  .oferta b { font-size: 13pt; }
+  .selo { font-size: 8.5pt; font-weight: 700; color: #fff; background: var(--acento); padding: 1.2mm 3mm; border-radius: 99px; }
+  .recado { margin-top: 4mm; padding: 4mm 5mm; border-left: 1px solid var(--acento); background: var(--acento-fundo); font-size: 10pt; color: #2A2D34; }
+  .cartao { border: 1px solid var(--linha); border-radius: 4mm; padding: 4.5mm 5mm; background: #fff; }
   .cartao.forte { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento) inset; }
   .cartao small { font-size: 7.5pt; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
-  .valor { font-family: "DM Serif Display", serif; font-size: 27pt; line-height: 1.1; margin-top: 2mm; }
-  .valor sup { font-family: "DM Sans", sans-serif; font-size: 10pt; vertical-align: .9em; margin-right: 1mm; color: var(--suave); }
+  .valor { font-family: var(--texto); font-weight: 700; letter-spacing: -0.03em; font-size: 22pt; line-height: 1.1; margin-top: 2mm; }
+  .valor sup { font-family: var(--texto); font-size: 10pt; vertical-align: .9em; margin-right: 1mm; color: var(--suave); }
   .cartao p { font-size: 9pt; color: var(--suave); margin-top: 1mm; }
   .extra { margin-top: 4mm; font-size: 9pt; color: var(--suave); }
+  .tabela-parcelas { list-style: none; margin-top: 2mm; display: grid; grid-auto-flow: column; grid-template-rows: repeat(5, auto); grid-template-columns: 1fr 1fr; gap: .6mm 3.5mm; }
+  .tabela-parcelas li { display: flex; justify-content: space-between; gap: 1.5mm; font-size: 8.4pt; white-space: nowrap; border-bottom: 1px dotted var(--linha); padding-bottom: .5mm; }
+  .tabela-parcelas li span { color: var(--suave); }
+  .tabela-parcelas li b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .marca { display: flex; align-items: center; gap: 2.5mm; }
+  .marca img { height: 7mm; width: auto; }
+  .condicoes { margin-top: 5mm; border: 1px solid var(--linha); border-radius: 4mm; background: #fff; display: grid; grid-template-columns: repeat(var(--colunas, 3), 1fr); }
+  .condicoes div { padding: 4.5mm 5mm; border-left: 1px solid var(--linha); }
+  .condicoes div:first-child { border-left: 0; }
+  .condicoes b { display: block; font-size: 10.5pt; color: #16803C; padding-left: 5.5mm; position: relative; }
+  .condicoes b::before { content: ""; position: absolute; left: 0; top: .9mm; width: 3.6mm; height: 3.6mm; border-radius: 50%; background: #16803C url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M4 8.4l2.6 2.6L12 5.6%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272.2%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E") center / 80% no-repeat; }
+  .condicoes p { padding-left: 5.5mm; }
+  .condicoes p { font-size: 9pt; color: var(--suave); margin-top: 1mm; }
+  /* Mockup: notebook com o print do computador e celular com o print do celular. */
+  .mockup { position: relative; padding: 2mm 0 4mm; }
+  .mockup .note { width: 80%; }
+  .mockup .note.so { width: 100%; }
+  .mockup .tela { background: #0f0f12; border-radius: 3.2mm 3.2mm 0 0; padding: 2.6mm 2.6mm 3mm; box-shadow: 0 6mm 10mm -5mm rgba(20,10,15,.45); }
+  .mockup .tela img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top; border-radius: .8mm; }
+  .mockup .base { height: 3mm; margin: 0 -7%; background: linear-gradient(#d9d9de, #a9a9b1); border-radius: 0 0 2.6mm 2.6mm; position: relative; }
+  .mockup .base::before { content: ""; position: absolute; left: 50%; top: 0; width: 20%; height: 1.1mm; transform: translateX(-50%); background: #8d8d95; border-radius: 0 0 1.2mm 1.2mm; }
+  .mockup .cel { position: absolute; right: 0; bottom: 0; width: 25%; padding: 1.6mm; background: #111; border-radius: 7mm; box-shadow: 0 6mm 10mm -4mm rgba(20,10,15,.55), inset 0 0 0 .3mm #2b2b30; }
+  .mockup .cel .tela-cel { border-radius: 5.6mm; overflow: hidden; background: var(--papel); padding-top: 5.2mm; }
+  .mockup .cel img { display: block; width: 100%; aspect-ratio: 390 / 800; object-fit: cover; object-position: top; }
+  .mockup .ilha { position: absolute; left: 50%; top: 3.2mm; width: 28%; height: 3.6mm; transform: translateX(-50%); background: #000; border-radius: 2mm; }
   .extra b { color: var(--tinta); font-weight: 600; }
 </style>
 </head>
@@ -98,22 +132,32 @@
     <h1>Proposta</h1>
     <p class="ajuda" id="ajuda">Carregando o lead…</p>
     <label for="e-marca">Sua marca</label><input id="e-marca" value="Seu Estúdio">
-    <label for="e-assinatura">Assinatura no fim</label><input id="e-assinatura" value="">
+    <label for="e-logo">Sua logo (opcional)</label><input id="e-logo" type="file" accept="image/*">
     <label for="e-site">Link da prévia do site</label><input id="e-site" type="url" placeholder="https://...">
-    <label for="e-print">Print da prévia (imagem)</label><input id="e-print" type="file" accept="image/*">
+    <label for="e-print">Print da prévia no computador</label><input id="e-print" type="file" accept="image/*">
+    <label for="e-celular">Print da prévia no celular</label><input id="e-celular" type="file" accept="image/*">
     <label for="e-cor">Cor da marca do cliente</label><input id="e-cor" type="color" value="#2F5D50">
     <div class="duas">
-      <div><label for="e-vista">À vista (R$)</label><input id="e-vista" type="number" min="0" step="1" value="597"></div>
-      <div><label for="e-parcelas">Parcelas</label><input id="e-parcelas" type="number" min="1" max="12" value="3"></div>
+      <div><label for="e-cheio">Preço cheio (R$)</label><input id="e-cheio" type="number" min="0" step="0.01" placeholder="sem desconto"></div>
+      <div><label for="e-vista">Preço final (R$)</label><input id="e-vista" type="number" min="0" step="0.01" value="497.90"></div>
     </div>
     <div class="duas">
-      <div><label for="e-total">Total parcelado (R$)</label><input id="e-total" type="number" min="0" step="1" placeholder="igual à vista"></div>
-      <div><label for="e-mensal">Manutenção/mês (R$)</label><input id="e-mensal" type="number" min="0" step="1" value="97"></div>
+      <div><label for="e-pix">Pix em até (x)</label><input id="e-pix" type="number" min="1" max="6" value="2"></div>
+      <div><label for="e-cartao">Cartão em até (x)</label><input id="e-cartao" type="number" min="1" max="12" value="10"></div>
     </div>
     <div class="duas">
-      <div><label for="e-prazo">Prazo (dias)</label><input id="e-prazo" type="number" min="1" value="3"></div>
-      <div><label for="e-validade">Validade (dias)</label><input id="e-validade" type="number" min="1" value="7"></div>
+      <div><label for="e-mensal">Manutenção/mês (R$)</label><input id="e-mensal" type="number" min="0" step="1" value="0"></div>
     </div>
+    <label for="e-recado">Recado pro cliente (opcional)</label><input id="e-recado" placeholder="Ex.: sei que o mês está apertado...">
+    <div class="duas">
+      <div><label for="e-validade">Validade (dias)</label><input id="e-validade" type="number" min="0" placeholder="sem validade"></div>
+      <div></div>
+    </div>
+    <div class="duas">
+      <div><label for="e-gratis">Edição grátis (meses)</label><input id="e-gratis" type="number" min="0" value="1"></div>
+      <div><label for="e-taxaedicao">Por mudança depois (R$)</label><input id="e-taxaedicao" type="number" min="0" step="1" value="50"></div>
+    </div>
+    <label class="marcar"><input id="e-diagnostico" type="checkbox" checked> Incluir a página de diagnóstico</label>
     <button type="button" id="imprimir">Salvar em PDF</button>
     <p class="ajuda" style="margin-top:10px">Na janela de impressão, escolha "Salvar como PDF", papel A4, margens "Nenhuma" e marque "Gráficos de fundo".</p>
   </form>

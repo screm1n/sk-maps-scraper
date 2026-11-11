@@ -6,6 +6,8 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const MIN_AVALIACOES = 10;
+  /** Mercado Pago payment-link installment fees (official table, Nov 2026), passed on to the buyer. */
+  const TAXAS_MP = { 2: 2.53, 3: 4.62, 4: 6.69, 5: 8.66, 6: 9.96, 7: 11.24, 8: 12.5, 9: 13.73, 10: 14.93, 11: 16.12, 12: 17.28 };
 
   const nomeCurto = (n) => String(n || "").split(/\s+[|\-–—·]\s+/)[0].trim() || n;
   const notaBr = (n) => Number(n).toFixed(1).replace(".", ",");
@@ -17,9 +19,11 @@
     return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
   }
 
-  let lead = null, lev = null, imagem = null;
+  let lead = null, lev = null, imagem = null, celular = null;
+  let logo = (() => { try { return localStorage.getItem("proposta:logo"); } catch { return null; } })();
   const salvo = (() => { try { return JSON.parse(localStorage.getItem("proposta:config") || "{}"); } catch { return {}; } })();
-  for (const k of ["marca", "assinatura", "vista", "parcelas", "mensal", "prazo", "validade"]) if (salvo[k] != null) $(`#e-${k}`).value = salvo[k];
+  for (const k of ["marca", "cheio", "vista", "pix", "cartao", "mensal", "validade", "gratis", "taxaedicao"]) if (salvo[k] != null) $(`#e-${k}`).value = salvo[k];
+  if (salvo.diagnostico === false) $("#e-diagnostico").checked = false;
 
   /** Problems the site check found, as short lines for "O que eu encontrei". */
   const PROBLEMAS = [
@@ -65,7 +69,7 @@
     const motivos = [
       ["Quem procura no Google decide rápido", "A pessoa compara dois ou três resultados e chama quem passa mais confiança. Quem tem site sai na frente de quem não tem."],
       segundo,
-      ["Profissional com site cobra melhor", "Uma presença organizada muda a percepção antes do primeiro contato, e isso aparece no valor que você consegue cobrar."],
+      ["Profissional com site vende mais fácil", "Uma presença organizada muda a percepção antes do primeiro contato, e isso impacta diretamente na sua facilidade de vender."],
     ];
     const itens = [
       ["Site profissional", "O da prévia, ajustado do seu jeito."], ["Seus trabalhos e avaliações", "Fotos reais e a nota do Google em destaque."],
@@ -95,7 +99,7 @@
       motivos: [
         ["Quem procura no Google decide rápido", "A pessoa compara dois ou três resultados e chama quem passa mais confiança. Um site datado faz você perder pra quem tem um melhor."],
         ["Site velho espanta quem já ia comprar", "Quem abre um site lento, sem botão de contato ou quebrado no celular volta pro Google e chama o próximo."],
-        ["Profissional com site bom cobra melhor", "Uma presença organizada muda a percepção antes do primeiro contato, e isso aparece no valor que você consegue cobrar."],
+        ["Profissional com site bom vende mais fácil", "Uma presença organizada muda a percepção antes do primeiro contato, e isso impacta diretamente na sua facilidade de vender."],
       ],
       itens: [
         ["Site novo", "Feito pra celular, rápido e com a sua marca."], ["Seus trabalhos e avaliações", "Fotos reais e a nota do Google em destaque."],
@@ -113,23 +117,48 @@
     document.documentElement.style.setProperty("--acento", cor);
     document.documentElement.style.setProperty("--acento-fundo", tomClaro(cor));
     const marca = v("marca") || "Seu Estúdio";
-    const assinatura = v("assinatura") || marca;
     const vista = Number(v("vista")) || 0;
-    const parcelas = Math.max(1, Number(v("parcelas")) || 1);
-    const total = Number(v("total")) || vista;
+    const cheio = Number(v("cheio")) || 0;
+    const desconto = cheio > vista ? cheio - vista : 0;
+    const pix = Math.max(1, Number(v("pix")) || 1);
+    const cartao = Math.max(1, Number(v("cartao")) || 1);
+    const centavos = (x) => Math.ceil(x * 100) / 100;
+    const parcelasCartao = Array.from({ length: Math.min(cartao, 12) - 1 }, (_, i) => i + 2)
+      .map((n) => [n, centavos(vista * (1 + TAXAS_MP[n] / 100) / n)]);
+    const recado = v("recado").trim();
+    const gratis = Math.max(0, Number(v("gratis")) || 0);
+    const taxaEdicao = Math.max(0, Number(v("taxaedicao")) || 0);
+    const comDiagnostico = $("#e-diagnostico").checked;
     const mensal = Number(v("mensal")) || 0;
-    const prazo = Number(v("prazo")) || 3;
-    const validadeDias = Number(v("validade")) || 7;
+    const validadeDias = Number(v("validade")) || 0;
     const site = v("site").trim();
     const hoje = new Date();
     const validade = new Date(hoje.getTime() + validadeDias * 864e5);
     const t = textos();
+    // The included items follow the conditions: free edits replace "suporte", and without a
+    // monthly fee there is no own domain (it would need a yearly renewal).
+    t.itens = t.itens.map(([b, d]) => {
+      if (b === "Suporte no WhatsApp" && gratis) return [`${gratis} ${gratis > 1 ? "meses" : "mês"} de edição grátis`, `Depois de publicado, mudanças sem custo por ${gratis > 1 ? `${gratis} meses` : "30 dias"}.`];
+      if (b === "Ajustes inclusos" && gratis) return [b, "Tudo o que você quiser mudar antes de publicar."];
+      return [b, d];
+    }).filter(([b]) => mensal || b !== "Domínio próprio"); // without a monthly fee the site stays on the free address
+    const condicoes = [];
+    if (!mensal) condicoes.push(["Sem mensalidade", "Pagou uma vez, o site fica no ar permanentemente, sem mensalidade."]);
+    if (gratis) condicoes.push([`${gratis} ${gratis > 1 ? "meses" : "mês"} de edição grátis`, `Qualquer mudança ${gratis > 1 ? `nos primeiros ${gratis} meses` : "no primeiro mês"} depois de publicar sai sem custo.`]);
+    if (taxaEdicao) condicoes.push([`Depois, R$ ${reais(taxaEdicao)} por conjunto de mudanças`, "Só quando você pedir. Sem pedido, sem cobrança."]);
     const cliente = nomeCurto(lead.nome);
     const local = [lead.bairro, lead.cidade].filter(Boolean).join(", ");
-    const rodape = (n) => `<footer class="rodape"><span>${esc(marca)}</span><span>0${n} / 03</span></footer>`;
-    const topo = (direita) => `<header class="topo"><div class="marca">${esc(marca)}</div><div class="meta">${direita}</div></header>`;
+    const totalFolhas = comDiagnostico ? 3 : 2;
+    const rodape = (n) => `<footer class="rodape"><span>${esc(marca)}</span><span>0${n - (comDiagnostico ? 0 : 1)} / 0${totalFolhas}</span></footer>`;
+    const topo = (direita) => `<header class="topo"><div class="marca">${logo ? `<img src="${logo}" alt="">` : ""}${esc(marca)}</div><div class="meta">${direita}</div></header>`;
+    const previa = imagem || celular
+      ? `<div class="mockup">
+          ${imagem ? `<div class="note${celular ? "" : " so"}"><div class="tela"><img src="${imagem}" alt="Prévia do site no computador"></div><div class="base"></div></div>` : ""}
+          ${celular ? `<div class="cel"${imagem ? "" : ' style="position:static;margin:0 auto;width:34%"'}><div class="tela-cel"><img src="${celular}" alt="Prévia do site no celular"></div><div class="ilha"></div></div>` : ""}
+        </div>`
+      : `<div class="janela"><div class="barra"><i></i><i></i><i></i><small>${esc(site.replace(/^https?:\/\//, "").replace(/\/$/, "") || "sua prévia")}</small></div><div class="sem-print">Escolha os prints da prévia no painel ao lado</div></div>`;
 
-    $("#folhas").innerHTML = `
+    $("#folhas").innerHTML = (comDiagnostico ? `
       <section class="folha">
         ${topo(`Proposta comercial<br>${dataExtenso(hoje)}`)}
         <p class="para">Para <b>${esc(cliente)}</b>${local ? ` · ${esc(local)}` : ""}</p>
@@ -139,49 +168,51 @@
           ${t.linhas.map(([n, p]) => `<div class="linha-dado"><span class="numero">${esc(n)}</span><p>${esc(p)}</p></div>`).join("")}</div>
         <div class="chamada"><p>A prévia do seu site já está pronta.</p><span>Ela está na próxima página</span></div>
         ${rodape(1)}
-      </section>
+      </section>` : "") + `
       <section class="folha">
         ${topo(esc(cliente))}
         <h2 style="margin-top:12mm">${esc(t.titulo)}</h2>
         <div class="motivos">${t.motivos.map(([b, p], i) => `<div class="motivo"><span class="n">${i + 1}</span><div><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join("")}</div>
-        <div class="previa"><div class="janela">
-          <div class="barra"><i></i><i></i><i></i><small>${esc(site.replace(/^https?:\/\//, "").replace(/\/$/, "") || "sua prévia")}</small></div>
-          ${imagem ? `<img src="${imagem}" alt="Prévia do site">` : `<div class="sem-print">Escolha o print da prévia no painel ao lado</div>`}</div>
+        <div class="previa">${previa}
           <div class="legenda"><span>Feita com as suas fotos, os seus serviços e a sua marca.</span>${site ? `<a href="${esc(site)}">Abrir a prévia</a>` : ""}</div></div>
         ${rodape(2)}
       </section>
       <section class="folha">
         ${topo(esc(cliente))}
-        <h2 style="margin-top:9mm">O que está incluso</h2>
+        <h2 style="margin-top:7mm">O que está incluso</h2>
         <div class="incluso">${t.itens.map(([b, p]) => `<div class="item"><b>${esc(b)}</b><p>${esc(p)}</p></div>`).join("")}</div>
-        <div class="passos">
-          <div class="passo"><small>Você aprova</small><p>Responde esta mensagem e me diz o que quer mudar.</p></div>
-          <div class="passo"><small>Em até ${prazo} dias</small><p>Ajusto tudo e publico no seu endereço.</p></div>
-          <div class="passo"><small>No ar</small><p>Você divulga, eu sigo cuidando do site.</p></div>
-        </div>
-        <div class="investimento"><h2>Investimento</h2>
-          <div class="cartoes">
+        <div class="investimento"><h2>Investimento${mensal ? "" : ` <span style="font-size:13pt;font-weight:500;letter-spacing:-0.01em;color:var(--suave)">(Pagamento único, site permanente)</span>`}</h2>
+          ${recado ? `<p class="recado">${esc(recado)}</p>` : ""}
+          ${desconto ? `<div class="oferta"><s>De R$ ${reais(cheio)}</s><b>por R$ ${reais(vista)}</b><span class="selo">Desconto de R$ ${reais(desconto)}</span></div>` : ""}
+          <div class="cartoes" style="--colunas:${1 + (pix > 1) + (cartao > 1)}">
             <div class="cartao forte"><small>À vista no Pix</small><div class="valor"><sup>R$</sup>${reais(vista)}</div><p>Pagamento único.</p></div>
-            <div class="cartao"><small>Parcelado</small><div class="valor"><sup>${parcelas}x R$</sup>${reais(total / parcelas)}</div><p>${total === vista ? `Sem juros, total de R$ ${reais(total)}.` : `Total de R$ ${reais(total)}.`}</p></div>
+            ${pix > 1 ? `<div class="cartao"><small>Pix em ${pix}x</small><div class="valor"><sup>${pix}x R$</sup>${reais(vista / pix)}</div><p>Sem acréscimo, metade agora e metade no mês que vem.</p></div>` : ""}
+            ${cartao > 1 ? `<div class="cartao"><small>Cartão pelo Mercado Pago</small>
+              <ul class="tabela-parcelas">${parcelasCartao.map(([n, val]) => `<li><span>${n}x</span><b>R$ ${reais(val)}</b></li>`).join("")}</ul>
+              <p>Com o acréscimo do Mercado Pago.</p></div>` : ""}
           </div>
+          ${condicoes.length ? `<div class="condicoes" style="--colunas:${condicoes.length}">${condicoes.map(([b, d]) => `<div><b>${esc(b)}</b><p>${esc(d)}</p></div>`).join("")}</div>` : ""}
           ${mensal ? `<p class="extra">Opcional: <b>manutenção por R$ ${reais(mensal)}/mês</b>, com domínio, hospedagem, backup e as alterações do mês inclusos.</p>` : ""}
-          <p class="extra">Proposta válida até <b>${validade.toLocaleDateString("pt-BR")}</b>.</p>
+          ${validadeDias ? `<p class="extra">Proposta válida até <b>${validade.toLocaleDateString("pt-BR")}</b>.</p>` : ""}
         </div>
-        <div class="chamada" style="margin-top:7mm;margin-bottom:5mm"><p>Pra começar, é só responder <b>sim</b> por aqui.</p><span>${esc(assinatura)}</span></div>
         ${rodape(3)}
       </section>`;
     document.title = `Proposta para ${cliente}`;
-    try { localStorage.setItem("proposta:config", JSON.stringify({ marca, assinatura: v("assinatura"), vista, parcelas, mensal, prazo, validade: validadeDias })); } catch { /* private mode */ }
+    try { localStorage.setItem("proposta:config", JSON.stringify({ marca, cheio: v("cheio"), vista, pix, cartao, mensal, validade: v("validade"), gratis, taxaedicao: taxaEdicao, diagnostico: comDiagnostico })); } catch { /* private mode */ }
   }
 
   $("#editor").addEventListener("input", render);
-  $("#e-print").addEventListener("change", (e) => {
+  const lerImagem = (id, pronto) => $(id).addEventListener("change", (e) => {
     const f = e.target.files[0];
     if (!f) return;
     const r = new FileReader();
-    r.onload = () => { imagem = r.result; render(); };
+    r.onload = () => { pronto(r.result); render(); };
     r.readAsDataURL(f);
   });
+  lerImagem("#e-print", (d) => { imagem = d; });
+  lerImagem("#e-celular", (d) => { celular = d; });
+  // The logo is the same on every proposal, so it stays saved in this browser.
+  lerImagem("#e-logo", (d) => { logo = d; try { localStorage.setItem("proposta:logo", d); } catch { /* too big or private mode */ } });
   $("#imprimir").addEventListener("click", () => window.print());
 
   const id = new URLSearchParams(location.search).get("lead");
