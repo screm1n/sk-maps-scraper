@@ -187,9 +187,9 @@
           <div class="cartoes" style="--colunas:${1 + (pix > 1) + (cartao > 1)}">
             <div class="cartao forte"><small>À vista no Pix</small><div class="valor"><sup>R$</sup>${reais(vista)}</div><p>Pagamento único.</p></div>
             ${pix > 1 ? `<div class="cartao"><small>Pix em ${pix}x</small><div class="valor"><sup>${pix}x R$</sup>${reais(vista / pix)}</div><p>Sem acréscimo, metade agora e metade no mês que vem.</p></div>` : ""}
-            ${cartao > 1 ? `<div class="cartao"><small>Cartão pelo Mercado Pago</small>
+            ${cartao > 1 ? `<div class="cartao"><small>Cartão de crédito, qualquer bandeira</small>
               <ul class="tabela-parcelas">${parcelasCartao.map(([n, val]) => `<li><span>${n}x</span><b>R$ ${reais(val)}</b></li>`).join("")}</ul>
-              <p>Com o acréscimo do Mercado Pago.</p></div>` : ""}
+              <p>Por link de pagamento do Mercado Pago, que aceita todas as bandeiras. Valores já com o acréscimo.</p></div>` : ""}
           </div>
           ${condicoes.length ? `<div class="condicoes" style="--colunas:${condicoes.length}">${condicoes.map(([b, d]) => `<div><b>${esc(b)}</b><p>${esc(d)}</p></div>`).join("")}</div>` : ""}
           ${mensal ? `<p class="extra">Opcional: <b>manutenção por R$ ${reais(mensal)}/mês</b>, com domínio, hospedagem, backup e as alterações do mês inclusos.</p>` : ""}
